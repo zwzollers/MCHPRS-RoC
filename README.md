@@ -1,3 +1,10 @@
+# Redstone On Chip (RoC)
+
+A FPGA implemtation of Redpiler that converts redstone into Verilog. 
+
+Supports comunication between FPGAs and MCHPRS for seemless integration with MCHPRS.
+
+
 # Minecraft High-Performance Redstone Server
 
 [![Build Status](https://github.com/MCHPR/MCHPRS/actions/workflows/build.yml/badge.svg)](https://github.com/MCHPR/MCHPRS/actions/workflows/build.yml)
