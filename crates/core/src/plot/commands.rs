@@ -186,7 +186,7 @@ impl Plot {
                 }
 
                 self.reset_redpiler();
-                self.start_redpiler(options);
+                self.start_redpiler(options, player);
 
                 debug!("Compile took {:?}", start_time.elapsed());
             }

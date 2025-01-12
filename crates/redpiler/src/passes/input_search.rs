@@ -107,11 +107,12 @@ impl<'a, W: World> InputSearchState<'a, W> {
         start_node: NodeIdx,
         search_wire: bool,
     ) {
+
         if block.is_solid() {
             for side in &BlockFace::values() {
                 let pos = pos.offset(*side);
                 let block = self.world.get_block(pos);
-                if self.provides_strong_power(block, *side) {
+                if self.provides_strong_power(block, *side) && self.pos_map.contains_key(&pos) {
                     self.graph.add_edge(
                         self.pos_map[&pos],
                         start_node,
@@ -143,7 +144,7 @@ impl<'a, W: World> InputSearchState<'a, W> {
                     }
                 }
             }
-        } else if self.provides_weak_power(block, side) {
+        } else if self.provides_weak_power(block, side) && self.pos_map.contains_key(&pos) {
             self.graph.add_edge(
                 self.pos_map[&pos],
                 start_node,

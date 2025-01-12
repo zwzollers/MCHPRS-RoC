@@ -1,0 +1,3 @@
+quartus_pgm -c "DE-SoC [USB-1]" -m jtag -o "p;FPGA-MCHPRS.sof@2"
+quartus_sh --flow compile FPGA-MCHPRS
+quartus_sh -t create_project.tcl

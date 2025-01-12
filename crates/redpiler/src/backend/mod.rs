@@ -1,4 +1,5 @@
 pub mod direct;
+pub mod fpga;
 
 use std::sync::Arc;
 
@@ -36,8 +37,10 @@ pub trait JITBackend {
 }
 
 use direct::DirectBackend;
+use fpga::FPGABackend;
 
 #[enum_dispatch(JITBackend)]
 pub enum BackendDispatcher {
     DirectBackend,
+    FPGABackend,
 }

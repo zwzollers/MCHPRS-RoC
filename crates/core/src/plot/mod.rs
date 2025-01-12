@@ -21,7 +21,7 @@ use mchprs_blocks::{BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::serverbound::SUseItemOn;
 use mchprs_network::PlayerPacketSender;
-use mchprs_redpiler::{Compiler, CompilerOptions};
+use mchprs_redpiler::{BackendVariant, Compiler, CompilerOptions};
 use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
 use mchprs_text::TextComponent;
 use mchprs_world::storage::Chunk;
@@ -557,7 +557,7 @@ impl Plot {
                 return;
             } else {
                 match self.redpiler.current_flags() {
-                    Some(flags) if flags.io_only => {
+                    Some(flags) if flags.io_only || (flags.backend_variant == BackendVariant::FPGA) => {
                         self.players[player].send_error_message(ERROR_IO_ONLY);
                         cancel(self);
                         return;
@@ -679,14 +679,20 @@ impl Plot {
         self.timings.reset_timings();
     }
 
-    fn start_redpiler(&mut self, options: CompilerOptions) {
+    fn start_redpiler(&mut self, options: CompilerOptions, player: usize) {
         debug!("Starting redpiler");
         self.scoreboard
             .set_redpiler_state(&self.players, RedpilerState::Compiling);
         self.scoreboard
             .set_redpiler_options(&self.players, &options);
 
-        let bounds = self.world.get_corners();
+        let plr: &Player = &self.players[player];
+
+        let bounds = if options.selection {
+                (plr.first_position.unwrap(), plr.second_position.unwrap())
+            } else {
+                self.world.get_corners()
+            };
         // TODO: use monitor
         let monitor = Default::default();
         let ticks = self.world.to_be_ticked.drain(..).collect();
@@ -1042,7 +1048,7 @@ impl Plot {
                 && !self.redpiler.is_active()
                 && (self.tps == Tps::Unlimited || self.timings.is_running_behind())
             {
-                self.start_redpiler(Default::default());
+                self.start_redpiler(Default::default(), 0);
             }
 
             let now = Instant::now();

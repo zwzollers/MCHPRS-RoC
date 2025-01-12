@@ -4,7 +4,7 @@
 
 use super::Pass;
 use crate::compile_graph::CompileGraph;
-use crate::{CompilerInput, CompilerOptions};
+use crate::{BackendVariant, CompilerInput, CompilerOptions};
 use itertools::Itertools;
 use mchprs_world::World;
 use petgraph::Direction;
@@ -30,7 +30,7 @@ impl<W: World> Pass<W> for PruneOrphans {
     }
 
     fn should_run(&self, options: &CompilerOptions) -> bool {
-        options.io_only && options.optimize
+        (options.io_only && options.optimize) || options.backend_variant == BackendVariant::FPGA
     }
 
     fn status_message(&self) -> &'static str {

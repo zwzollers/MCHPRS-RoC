@@ -3,7 +3,7 @@ use mchprs_network::packets::clientbound::{
     CDisplayObjective, CResetScore, CUpdateObjectives, CUpdateScore, ClientBoundPacket,
     ObjectiveNumberFormat,
 };
-use mchprs_redpiler::CompilerOptions;
+use mchprs_redpiler::{BackendVariant, CompilerOptions};
 use mchprs_text::{ColorCode, TextComponentBuilder};
 
 #[derive(PartialEq, Eq, Default, Clone, Copy)]
@@ -137,6 +137,12 @@ impl Scoreboard {
         }
         if options.wire_dot_out {
             flags.push("§b- wire dot out");
+        }
+        if options.selection {
+            flags.push("§b- selection only");
+        }
+        if options.backend_variant == BackendVariant::FPGA {
+            flags.push("§b- FPGA");
         }
 
         if !flags.is_empty() {

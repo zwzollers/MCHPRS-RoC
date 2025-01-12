@@ -203,20 +203,26 @@ impl JITBackend for DirectBackend {
     }
 
     fn on_use_block(&mut self, pos: BlockPos) {
-        let node_id = self.pos_map[&pos];
-        let node = &self.nodes[node_id];
-        match node.ty {
-            NodeType::Button => {
-                if node.powered {
-                    return;
+        let node_id = self.pos_map.get(&pos);
+        match node_id {
+            Some (id) => {
+                let node_id = *id;
+                let node = &self.nodes[node_id];
+                match node.ty {
+                    NodeType::Button => {
+                        if node.powered {
+                            return;
+                        }
+                        self.schedule_tick(node_id, 10, TickPriority::Normal);
+                        self.set_node(node_id, true, 15);
+                    }
+                    NodeType::Lever => {
+                        self.set_node(node_id, !node.powered, bool_to_ss(!node.powered));
+                    }
+                    _ => warn!("Tried to use a {:?} redpiler node", node.ty),
                 }
-                self.schedule_tick(node_id, 10, TickPriority::Normal);
-                self.set_node(node_id, true, 15);
             }
-            NodeType::Lever => {
-                self.set_node(node_id, !node.powered, bool_to_ss(!node.powered));
-            }
-            _ => warn!("Tried to use a {:?} redpiler node", node.ty),
+            None => ()
         }
     }
 

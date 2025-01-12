@@ -46,14 +46,18 @@ pub struct CompilerOptions {
     pub export_dot_graph: bool,
     /// Consider a redstone dot to be an output block (for color screens)
     pub wire_dot_out: bool,
+    /// Compile only what is selected in the WorldEdit selection
+    pub selection: bool,
     /// The backend variant to be used after compilation
     pub backend_variant: BackendVariant,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+
 pub enum BackendVariant {
     #[default]
     Direct,
+    FPGA,
 }
 
 impl CompilerOptions {
@@ -69,6 +73,8 @@ impl CompilerOptions {
                     "--update" => co.update = true,
                     "--export-dot" => co.export_dot_graph = true,
                     "--wire-dot-out" => co.wire_dot_out = true,
+                    "--selection" => co.selection = true,
+                    "--fpga" => co.backend_variant = BackendVariant::FPGA,
                     // FIXME: use actual error handling
                     _ => warn!("Unrecognized option: {}", option),
                 }
@@ -81,6 +87,8 @@ impl CompilerOptions {
                         "i" => co.io_only = true,
                         "u" => co.update = true,
                         "d" => co.wire_dot_out = true,
+                        "s" => co.selection = true,
+                        "f" => co.backend_variant = BackendVariant::FPGA,
                         // FIXME: use actual error handling
                         _ => warn!("Unrecognized option: -{}", c),
                     }
@@ -142,12 +150,16 @@ impl Compiler {
             Some(BackendDispatcher::DirectBackend(_)) => {
                 options.backend_variant != BackendVariant::Direct
             }
+            Some(BackendDispatcher::FPGABackend(_)) => {
+                options.backend_variant != BackendVariant::FPGA
+            }
             None => true,
         };
         if replace_jit {
             debug!("Switching jit backend to {:?}", options.backend_variant);
             let jit = match options.backend_variant {
                 BackendVariant::Direct => BackendDispatcher::DirectBackend(Default::default()),
+                BackendVariant::FPGA => BackendDispatcher::FPGABackend(Default::default()),
             };
             self.use_jit(jit);
         }
@@ -253,6 +265,7 @@ mod tests {
             update: true,
             export_dot_graph: false,
             wire_dot_out: false,
+            selection: false,
             backend_variant: BackendVariant::default(),
         };
         let options = CompilerOptions::parse(input);

@@ -150,6 +150,7 @@ impl MinecraftServer {
         fs::create_dir_all("./world/players").unwrap();
         fs::create_dir_all("./world/plots").unwrap();
         fs::create_dir_all("./schems").unwrap();
+        fs::create_dir_all("./FPGA/bin").unwrap();
 
         plot::database::init();
 

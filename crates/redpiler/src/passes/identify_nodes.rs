@@ -10,6 +10,7 @@
 use super::Pass;
 use crate::compile_graph::{Annotations, CompileGraph, CompileNode, NodeIdx, NodeState, NodeType};
 use crate::{CompilerInput, CompilerOptions};
+use crate::BackendVariant;
 use itertools::Itertools;
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
@@ -29,7 +30,7 @@ impl<W: World> Pass<W> for IdentifyNodes {
         options: &CompilerOptions,
         input: &CompilerInput<'_, W>,
     ) {
-        let ignore_wires = options.optimize;
+        let ignore_wires = options.optimize || (options.backend_variant == BackendVariant::FPGA);
         let plot = input.world;
 
         let mut first_pass = FxHashMap::default();

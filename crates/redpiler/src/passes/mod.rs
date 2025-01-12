@@ -12,6 +12,8 @@ mod unreachable_output;
 
 use mchprs_world::World;
 
+use crate::BackendVariant;
+
 use super::compile_graph::CompileGraph;
 use super::task_monitor::TaskMonitor;
 use super::{CompilerInput, CompilerOptions};
@@ -98,7 +100,7 @@ pub trait Pass<W: World> {
 
     fn should_run(&self, options: &CompilerOptions) -> bool {
         // Run passes for optimized builds by default
-        options.optimize
+        options.optimize || (options.backend_variant == BackendVariant::FPGA)
     }
 
     fn status_message(&self) -> &'static str;

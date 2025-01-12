@@ -4,3 +4,11 @@
 /test_proxy
 /generators
 /.direnv
+
+#Quartus generates alot of runtime files and folders its easier to just ignore everthing
+FPGA/Quartus/*
+!FPGA/Quartus/Commands/
+!FPGA/Quartus/Commands/**
+!FPGA/Quartus/Verilog/
+!FPGA/Quartus/Verilog/**
+!FPGA/Quartus/create_project.tcl

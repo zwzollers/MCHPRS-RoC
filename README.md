@@ -1,8 +1,16 @@
 # Redstone On Chip (RoC)
 
-A FPGA implemtation of Redpiler that converts redstone into Verilog. 
+A FPGA implmentation of Redpiler that converts redstone into Verilog. 
 
 Supports comunication between FPGAs and MCHPRS for seemless integration with MCHPRS.
+
+There are 4 new options avaiable in `Config.toml` which are used to configure your FPGA settings
+| Field | Description | Default |
+| --- | --- |--- |
+| `fpga_compiler` | The compiler being used to compile the verilog | `Quartus` |
+| `compiler_version` | The version of the compiler being used | `23.1` |
+| `fpga_family` | The family of FPGA devices being used | `Cyclone V` |
+| `fpga_device` | The name of the FPGA device that is being used | `5CSEMA5F31A7` |
 
 
 # Minecraft High-Performance Redstone Server
