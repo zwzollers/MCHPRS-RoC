@@ -689,7 +689,12 @@ impl Plot {
         let plr: &Player = &self.players[player];
 
         let bounds = if options.selection {
-                (plr.first_position.unwrap(), plr.second_position.unwrap())
+                let pos = (plr.first_position, plr.second_position);
+                if pos.0.is_some() && pos.1.is_some() {
+                    (pos.0.unwrap(), pos.1.unwrap())
+                } else {
+                    self.world.get_corners()
+                }
             } else {
                 self.world.get_corners()
             };

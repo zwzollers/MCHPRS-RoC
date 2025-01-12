@@ -3,7 +3,7 @@ use crate::SerialBuffer;
 use super::{FPGAInterface, SerialConnection, SerialCommands};
 
 impl FPGAInterface {
-    pub fn new(name: &str, baud: u32, timeout: u32, buffer_size: usize) -> FPGAInterface{
+    pub fn new(name: &str, baud: u32, timeout: u32) -> FPGAInterface{
         FPGAInterface{serial_conn: SerialConnection::new(name, baud, timeout)}
     }
 

@@ -4,22 +4,13 @@ mod node;
 use super::JITBackend;
 use crate::compile_graph::{CompileGraph, NodeType};
 use crate::task_monitor::TaskMonitor;
-use crate::{block_powered_mut, CompilerOptions};
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::{self, Block, ComparatorMode, Instrument};
+use crate::CompilerOptions;
+use mchprs_blocks::blocks::Block;
 use mchprs_blocks::BlockPos;
-use mchprs_redstone::{bool_to_ss, noteblock};
 use mchprs_world::World;
-use mchprs_world::{TickEntry, TickPriority};
-use node::{FPGAInputs, FPGAOutputs, Input, Output};
-use rustc_hash::FxHashMap;
-use std::collections::HashMap;
+use mchprs_world::TickEntry;
+use node::{FPGAInputs, FPGAOutputs};
 use std::sync::Arc;
-use std::{fmt, mem};
-use tracing::{debug, warn};
-use std::time::Instant;
-use std::fs::File;
-use std::io::prelude::*;
 use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader, Error, ErrorKind};
 
@@ -33,11 +24,11 @@ pub struct FPGABackend {
 }
 
 impl JITBackend for FPGABackend {
-    fn inspect(&mut self, pos: BlockPos) {
+    fn inspect(&mut self, _pos: BlockPos) {
 
     }
 
-    fn reset<W: World>(&mut self, world: &mut W, io_only: bool) {
+    fn reset<W: World>(&mut self, _world: &mut W, _io_only: bool) {
         self.inputs = FPGAInputs::default();
         self.outputs = FPGAOutputs::default();
         self.fpga.reset();
@@ -51,7 +42,7 @@ impl JITBackend for FPGABackend {
     }
 
     fn set_pressure_plate(&mut self, pos: BlockPos, powered: bool) {
-
+        
     }
 
     fn tick(&mut self) {
@@ -72,20 +63,21 @@ impl JITBackend for FPGABackend {
         &mut self,
         graph: CompileGraph,
         _ticks: Vec<TickEntry>,
-        options: &CompilerOptions,
-        monitor: Arc<TaskMonitor>,
+        _options: &CompilerOptions,
+        _monitor: Arc<TaskMonitor>,
     ) {
         for nodeid in graph.node_indices() {
             let node = &graph[nodeid];
-            let (pos, blockid) = node.block.unwrap();
-            let block = Block::from_id(blockid);
-            match node.ty
-            {
-                NodeType::Lamp | NodeType::Trapdoor => 
-                    self.outputs.add(block, pos),
-                NodeType::Lever | NodeType::Button | NodeType::PressurePlate => 
-                    self.inputs.add(block, pos),
-                _ => ()
+            if let Some((pos, blockid)) = node.block {
+                let block = Block::from_id(blockid);
+                match node.ty
+                {
+                    NodeType::Lamp | NodeType::Trapdoor => 
+                        self.outputs.add(block, pos),
+                    NodeType::Lever | NodeType::Button | NodeType::PressurePlate => 
+                        self.inputs.add(block, pos),
+                    _ => ()
+                }
             }
         }
         assembler::generate_verilog(&graph, "../../FPGA/Quartus/Verilog/redstone.v");

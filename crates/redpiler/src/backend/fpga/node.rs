@@ -129,11 +129,11 @@ impl Input {
     fn new(block: Block, id: u16) -> Option<Input> {
         match block {
             Block::Lever { lever: Lever { face:f, facing:fa, powered:p } } =>
-                Some(Input { ty: InputType::Lever{face:f, facing:fa}, state: if p {1} else {0}, changed: false, id:id }),
+                Some(Input { ty: InputType::Lever{face:f, facing:fa}, state: if p {1} else {0}, changed: true, id:id }),
             Block::StoneButton { button: StoneButton { face:f, facing:fa, powered:p } } =>
-                Some(Input { ty: InputType::Button{face:f, facing:fa}, state: if p {1} else {0}, changed: false, id:id }),
+                Some(Input { ty: InputType::Button{face:f, facing:fa}, state: if p {1} else {0}, changed: true, id:id }),
             Block::StonePressurePlate { powered:p } =>
-                Some(Input { ty: InputType::PressurePlate, state: if p {1} else {0}, changed: false, id:id }),
+                Some(Input { ty: InputType::PressurePlate, state: if p {1} else {0}, changed: true, id:id }),
             _ => None
         }
     }
