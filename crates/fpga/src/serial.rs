@@ -27,7 +27,11 @@ impl SerialConnection {
         self.conn.as_mut().unwrap().clear(serialport::ClearBuffer::Input).is_ok()
     }
 
-    pub fn write (&mut self, data: u8) -> bool {
+    pub fn write (&mut self, data: &Vec<u8>) -> bool {
+        self.conn.as_mut().unwrap().write(data).is_ok()
+    }
+
+    pub fn write_byte (&mut self, data: u8) -> bool {
         self.conn.as_mut().unwrap().write(&vec![data]).is_ok()
     }
 }

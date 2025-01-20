@@ -50,7 +50,7 @@ impl JITBackend for FPGABackend {
     }
 
     fn flush<W: World>(&mut self, world: &mut W, _io_only: bool) { 
-        let data = &mut self.fpga.get_output_data(self.outputs.get_num_bytes()).into_iter();
+        let data  = &mut self.fpga.get_output_data(self.outputs.get_num_bytes()).unwrap().into_iter();
         for (pos, block) in self.outputs.get_blocks_to_change(data) {
             world.set_block(pos, block);
         }

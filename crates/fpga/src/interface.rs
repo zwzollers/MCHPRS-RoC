@@ -7,21 +7,22 @@ impl FPGAInterface {
         FPGAInterface{serial_conn: SerialConnection::new(name, baud, timeout)}
     }
 
-    pub fn get_output_data(&mut self, bytes: usize) -> SerialBuffer
+    pub fn get_output_data(&mut self, bytes: usize) -> Option<SerialBuffer>
     {
         let mut buffer: SerialBuffer = SerialBuffer::new(bytes);
-        self.serial_conn.write(SerialCommands::RequestOutputs as u8);
-        self.serial_conn.read(&mut buffer.buf);
-        self.serial_conn.clear_buffer();
-        buffer
+        if self.serial_conn.write_byte(SerialCommands::RequestOutputs as u8) &&
+        self.serial_conn.read(&mut buffer.buf) {
+            self.serial_conn.clear_buffer();
+            Some(buffer)
+        } else {
+            None
+        }
     }
 
     pub fn set_input_state(&mut self, id: u16, state: u8) -> bool
     {
-        self.serial_conn.write(SerialCommands::UpdateLever as u8) &
-        self.serial_conn.write(((id >> 8) & 0xFF) as u8) &
-        self.serial_conn.write((id & 0xFF) as u8) &
-        self.serial_conn.write(state)
+        let data = &vec![SerialCommands::UpdateLever as u8, ((id >> 8) & 0xFF) as u8, (id & 0xFF) as u8, state];
+        self.serial_conn.write(data)
     }
 
     pub fn reset(&mut self) -> bool
@@ -32,7 +33,7 @@ impl FPGAInterface {
 
     pub fn ping(&mut self) -> bool
     {
-        self.serial_conn.write(SerialCommands::Ping as u8);
+        self.serial_conn.write_byte(SerialCommands::Ping as u8);
         let res: &mut Vec<u8> = &mut vec![0];
         self.serial_conn.read(res);
 
