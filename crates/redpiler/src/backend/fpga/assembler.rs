@@ -1,5 +1,7 @@
 use mchprs_blocks::{blocks::Block, BlockPos};
+use petgraph::graph::NodeIndex;
 use petgraph::visit::EdgeRef;
+use redpiler_graph::NodeId;
 use crate::compile_graph::{CompileGraph, LinkType, NodeType};
 use std::fs::File;
 use std::io::prelude::*;
@@ -24,45 +26,39 @@ pub fn generate_verilog(graph: &CompileGraph, path: &str) {
             let block = Block::from_id(blockid);
             let state = node.state.powered;
 
-            verilog.push_str(&format!("\twire w{};\n", hash_pos(pos)));
-            match node.ty
-            {
-                NodeType::Lever | NodeType::PressurePlate | NodeType::Button =>
-                {
-                    verilog.push_str(&format!("\tassign w{} = inputs[{input_count}];\n", 
-                        hash_pos(pos)));
+            match node.ty {
+                NodeType::Lever | NodeType::PressurePlate | NodeType::Button => {
+                    verilog.push_str(&format!("\twire w{id};\n"));
+                    verilog.push_str(&format!("\tassign w{id} = inputs[{input_count}];\n"));
                     input_count += 1;
                 }
-                NodeType::Lamp | NodeType::Trapdoor =>
-                {
+                NodeType::Lamp | NodeType::Trapdoor => {
                     verilog.push_str(&format!("\tassign outputs[{output_count}] = ({});\n", 
                         get_inputs_str(graph, id, Some(LinkType::Default))));
                     output_count += 1;
                 }
-                NodeType::Repeater { delay, facing_diode } =>
-                {
-                    
+                NodeType::Repeater { delay, facing_diode } => {
+                    verilog.push_str(&format!("\twire w{};\n", id));
                     verilog.push_str(&format!("\trepeater #({}, 1'b{}, {}, {}) c{} (.i_clk(tick), .i_in({}), .i_lock({}), .o_out(w{}));\n",
                         delay,
                         if state {1} else {0},
                         if is_locker(graph, id) {1} else {0},
                         if is_locking(graph, id) {1} else {0},
-                        hash_pos(pos),
+                        id,
                         get_inputs_str(graph, id, Some(LinkType::Default)),
                         get_inputs_str(graph, id, Some(LinkType::Side)),
-                        hash_pos(pos)));
+                        id));
                 }
-                NodeType::Torch =>
-                {
+                NodeType::Torch => {
+                    verilog.push_str(&format!("\twire w{};\n", id));
                     verilog.push_str(&format!("\ttorch #(1'b{}) c{} (.i_clk(tick), .i_in({}), .o_out(w{}));\n", 
                         if state {1} else {0},
-                        hash_pos(pos),
+                        id,
                         get_inputs_str(graph, id, Some(LinkType::Default)),
-                        hash_pos(pos)));
+                        id));
                 }
-                NodeType::Comparator {..} =>
-                {
-                    todo!("Do Comparators");
+                NodeType::Comparator { mode, far_input, facing_diode} => {
+
                 }
                 _ => ()
             }
@@ -70,54 +66,36 @@ pub fn generate_verilog(graph: &CompileGraph, path: &str) {
     }
     verilog.push_str("endmodule");
     let mut file = File::create(path).unwrap();
-    match file.write_all(verilog.as_bytes())
-    {
+    match file.write_all(verilog.as_bytes()) {
         Err(..) => println!("    Error Writing to file"),
         _ => ()
     }
 }
 
-fn hash_pos (pos: BlockPos) -> String {
-    format!("{}_{}_{}", pos.x, pos.y, pos.z).to_string()
-}
-
-pub fn get_inputs_str (graph: &CompileGraph, node: usize, ty: Option<LinkType>) -> String
-{
+fn get_inputs_str (graph: &CompileGraph, node: usize, ty: Option<LinkType>) -> String {
     let mut inputs = "".to_owned();
-    for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Incoming)
-    {
-        let link = &graph[edge.id()];
-
-        if ty == None || link.ty == ty.unwrap() {
-            let s_node = &graph[edge.source()];
-            inputs.push('w');
-            inputs.push_str(&hash_pos(s_node.block.unwrap().0));
-            inputs.push('|');
+    for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Incoming) {
+        let weight = edge.weight(); 
+        if ty == None || weight.ty == ty.unwrap() {
+            inputs.push_str(&format!("w{}|", edge.source().index()));
         }
     }
     inputs.pop();
     inputs
 }
 
-pub fn is_locking (graph: &CompileGraph, node: usize) -> bool
-{
-    for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Incoming)
-    {
+fn is_locking (graph: &CompileGraph, node: usize) -> bool {
+    for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Incoming) {
         let link = &graph[edge.id()];
         if link.ty == LinkType::Side {return true} 
     }
     false
 }
 
-pub fn is_locker (graph: &CompileGraph, node: usize) -> bool
-{
-    for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Outgoing)
-    {
+fn is_locker (graph: &CompileGraph, node: usize) -> bool {
+    for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Outgoing) {
         let link = &graph[edge.id()];
         if link.ty == LinkType::Side {return true}
     }
     false
 }
-
-
-

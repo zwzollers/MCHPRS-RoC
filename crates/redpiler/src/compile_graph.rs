@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use mchprs_blocks::blocks::{ComparatorMode, Instrument};
 use mchprs_blocks::BlockPos;
 use petgraph::stable_graph::{NodeIndex, StableGraph};
@@ -27,6 +29,22 @@ pub enum NodeType {
         instrument: Instrument,
         note: u32,
     },
+    DiscreteComparator {
+        states: u16
+    },
+    LUT {
+        input: Vec<LUTEntry>,
+        side: Vec<LUTEntry>,
+        output: Vec<LUTEntry>
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+pub enum LUTEntry {
+    #[default]
+    None,
+    Discrete (u16),
+    Analog (u8) //only use max 4bits
 }
 
 #[derive(Debug, Clone, Default)]

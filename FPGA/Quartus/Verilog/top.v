@@ -118,6 +118,27 @@ module top (i_clk, i_switches, i_buttons, o_LEDs, i_RX, o_TX);
 	
 	wire tick;
 	
+	wire [3:0] n1;
+	wire [3:0] n2;
+	wire [3:0] n3;
+	wire [3:0] n4;
+	
+	assign n1 = 4'd4;
+	assign n2 = 4'd8;
+	assign n3 = 4'd7;
+	assign n4 = 4'd10;
+	
+	wire [3:0] n12;
+	wire [3:0] n34;
+	
+	wire [3:0] out;
+	assign out = (n12 >= n34 ? n12 : n34);
+	
+	assign n12 = (n1 >= n2 ? n1 : n2);
+	assign n34 = (n1 >= n2 ? n3 : n4);
+	
+	assign o_LEDs[3:0] = out;
+	
 	//clk_div #(.limit(2500000), .n(22)) tps (.ar(i_buttons[0]), .clk_in(i_clk), .clk_out(tick)); 
 	
 	Tick tick_clk ( .refclk(i_clk), .rst(~i_buttons[0]), .outclk_0(tick));

@@ -48,6 +48,8 @@ pub struct CompilerOptions {
     pub wire_dot_out: bool,
     /// Compile only what is selected in the WorldEdit selection
     pub selection: bool,
+    /// Run the verilog through compiler
+    pub compile_verilog: bool,
     /// The backend variant to be used after compilation
     pub backend_variant: BackendVariant,
 }
@@ -75,6 +77,7 @@ impl CompilerOptions {
                     "--wire-dot-out" => co.wire_dot_out = true,
                     "--selection" => co.selection = true,
                     "--fpga" => co.backend_variant = BackendVariant::FPGA,
+                    "--compile" => co.compile_verilog = true,
                     // FIXME: use actual error handling
                     _ => warn!("Unrecognized option: {}", option),
                 }
@@ -89,6 +92,7 @@ impl CompilerOptions {
                         "d" => co.wire_dot_out = true,
                         "s" => co.selection = true,
                         "f" => co.backend_variant = BackendVariant::FPGA,
+                        "c" => co.compile_verilog = true,
                         // FIXME: use actual error handling
                         _ => warn!("Unrecognized option: -{}", c),
                     }
@@ -266,6 +270,7 @@ mod tests {
             export_dot_graph: false,
             wire_dot_out: false,
             selection: false,
+            compile_verilog: false,
             backend_variant: BackendVariant::default(),
         };
         let options = CompilerOptions::parse(input);

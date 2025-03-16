@@ -66,6 +66,8 @@ fn convert_node(
             CNodeType::Wire => NodeType::Wire,
             CNodeType::Constant => NodeType::Constant,
             CNodeType::NoteBlock { .. } => NodeType::NoteBlock,
+            _ => NodeType::Comparator(ComparatorMode::Compare)
+
         },
         block: node.block.map(|(pos, id)| {
             (

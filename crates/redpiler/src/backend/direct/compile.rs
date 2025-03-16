@@ -121,6 +121,7 @@ fn compile_node(
             noteblock_info.push((node.block.unwrap().0, *instrument, *note));
             NodeType::NoteBlock { noteblock_id }
         }
+        _ => {panic!()}
     };
 
     Node {

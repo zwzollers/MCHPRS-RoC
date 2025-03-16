@@ -63,7 +63,7 @@ impl JITBackend for FPGABackend {
         &mut self,
         graph: CompileGraph,
         _ticks: Vec<TickEntry>,
-        _options: &CompilerOptions,
+        options: &CompilerOptions,
         _monitor: Arc<TaskMonitor>,
     ) {
         for nodeid in graph.node_indices() {
@@ -80,38 +80,43 @@ impl JITBackend for FPGABackend {
                 }
             }
         }
-        assembler::generate_verilog(&graph, "../../FPGA/Quartus/Verilog/redstone.v");
-
-        let stdout = Command::new("cmd")
-            .args(&["/C", r"..\..\FPGA\Quartus\Commands\Windows\compile"])
-            .stdout(Stdio::piped())
-            .spawn().unwrap()
-            .stdout
-            .ok_or_else(|| Error::new(ErrorKind::Other,"Could not capture standard output.")).unwrap();
-
-        let reader = BufReader::new(stdout);
         
-        reader
-            .lines()
-            .filter_map(|line| line.ok())
-            .for_each(|line| println!("{}", line));
+        println!("{:#?}", graph);
+
+        if !options.compile_verilog {
+            assembler::generate_verilog(&graph, "../../FPGA/Quartus/Verilog/redstone.v");
+
+            let stdout = Command::new("cmd")
+                .args(&["/C", r"..\..\FPGA\Quartus\Commands\Windows\compile"])
+                .stdout(Stdio::piped())
+                .spawn().unwrap()
+                .stdout
+                .ok_or_else(|| Error::new(ErrorKind::Other,"Could not capture standard output.")).unwrap();
+
+            let reader = BufReader::new(stdout);
+            
+            reader
+                .lines()
+                .filter_map(|line| line.ok())
+                .for_each(|line| println!("{}", line));
 
 
-        let stdout = Command::new("cmd")
-            .args(&["/C", r"..\..\FPGA\Quartus\Commands\Windows\program"])
-            .stdout(Stdio::piped())
-            .spawn().unwrap()
-            .stdout
-            .ok_or_else(|| Error::new(ErrorKind::Other,"Could not capture standard output.")).unwrap();
+            let stdout = Command::new("cmd")
+                .args(&["/C", r"..\..\FPGA\Quartus\Commands\Windows\program"])
+                .stdout(Stdio::piped())
+                .spawn().unwrap()
+                .stdout
+                .ok_or_else(|| Error::new(ErrorKind::Other,"Could not capture standard output.")).unwrap();
 
-        let reader = BufReader::new(stdout);
-        
-        reader
-            .lines()
-            .filter_map(|line| line.ok())
-            .for_each(|line| println!("{}", line));
+            let reader = BufReader::new(stdout);
+            
+            reader
+                .lines()
+                .filter_map(|line| line.ok())
+                .for_each(|line| println!("{}", line));
 
-        self.fpga.serial_start("COM4", 2500000);
+            self.fpga.serial_start("COM4", 2500000);
+        }
     }
 
     fn has_pending_ticks(&self) -> bool {false}
