@@ -1,0 +1,26 @@
+{
+    "manifest": [
+        "src/interface/clk_div.sv",
+        "src/interface/command_controller.sv",
+        "src/interface/uart.sv",
+        "src/redstone/components.sv",
+        "src/redstone/RoC.sv",
+        "src/redstone/tps_clk_div.sv",
+        "src/top.sv",
+        
+        "ip/ref_clk.cmp",
+        "ip/ref_clk.qip",
+        "ip/ref_clk.sip",
+        "ip/ref_clk/ref_clk_0002.qip",
+        "ip/ref_clk/ref_clk_0002.v",
+
+        "config/devices.json",
+
+        "prj/",
+        "bin/configs/",
+        "bin/redstone/",
+
+        "logs/serial/",
+        "logs/compiler/"
+    ]
+}

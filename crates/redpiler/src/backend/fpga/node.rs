@@ -23,7 +23,13 @@ impl FPGAOutputs {
     pub fn get_blocks_to_change(&mut self, data: &mut BinaryIterator) -> Vec<(BlockPos, Block)> {
         let mut res: Vec<(BlockPos, Block)> = Vec::new();
         for output in &mut self.outputs {
-            let state = data.bits(output.bit_count());
+            let state = match data.next(output.bit_count()) {
+                Some(d) => {
+                    //println!("{d:?}");
+                    d
+                }
+                None => 0,
+            };
             output.set_state(state);
             res.push((output.pos, output.get_block()));
         }
@@ -90,7 +96,7 @@ enum OutputType {
 #[derive(Default, Debug)]
 pub struct FPGAInputs {
     inputs: HashMap<BlockPos, Input>,
-    num_inputs: u16,
+    pub num_inputs: u32,
 }
 
 impl FPGAInputs {
@@ -122,11 +128,11 @@ pub struct Input {
     ty: InputType,
     pub state: u8,
     changed: bool,
-    pub id: u16,
+    pub id: u32,
 }
 
 impl Input {
-    fn new(block: Block, id: u16) -> Option<Input> {
+    fn new(block: Block, id: u32) -> Option<Input> {
         match block {
             Block::Lever { lever: Lever { face:f, facing:fa, powered:p } } =>
                 Some(Input { ty: InputType::Lever{face:f, facing:fa}, state: if p {1} else {0}, changed: true, id:id }),

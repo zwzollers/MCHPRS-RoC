@@ -22,6 +22,7 @@ use mchprs_network::packets::serverbound::{
 use mchprs_network::packets::{PacketEncoderExt, PlayerProperty, SlotData, COMPRESSION_THRESHOLD};
 use mchprs_network::{NetworkServer, NetworkState, PlayerPacketSender};
 use mchprs_text::TextComponent;
+use fpga::RoC;
 use mchprs_utils::map;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -31,6 +32,7 @@ use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 
@@ -132,6 +134,7 @@ pub struct MinecraftServer {
     plot_sender: Sender<Message>,
     online_players: FxHashMap<u128, PlayerListEntry>,
     running_plots: Vec<PlotListEntry>,
+    fpgas: Arc<Mutex<RoC>>,
     whitelist: Option<Vec<WhitelistEntry>>,
 }
 
@@ -150,7 +153,6 @@ impl MinecraftServer {
         fs::create_dir_all("./world/players").unwrap();
         fs::create_dir_all("./world/plots").unwrap();
         fs::create_dir_all("./schems").unwrap();
-        fs::create_dir_all("./FPGA/bin").unwrap();
 
         plot::database::init();
 
@@ -188,6 +190,7 @@ impl MinecraftServer {
             plot_sender: plot_tx,
             online_players: FxHashMap::default(),
             running_plots: Vec::new(),
+            fpgas: Arc::new(Mutex::new(RoC::new())),
             whitelist,
         };
 
@@ -202,6 +205,7 @@ impl MinecraftServer {
             spawn_rx,
             true,
             None,
+            Arc::clone(&server.fpgas),
         );
         server.running_plots.push(PlotListEntry {
             plot_x: 0,
@@ -287,6 +291,7 @@ impl MinecraftServer {
                 priv_rx,
                 false,
                 Some(player),
+                Arc::clone(&self.fpgas),
             );
             self.running_plots.push(PlotListEntry {
                 plot_x,

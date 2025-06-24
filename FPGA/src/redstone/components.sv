@@ -111,24 +111,3 @@ module comp (i_clk, i_in, i_side, o_out);
 			
 
 endmodule
-
-module greatest (i_in, i_out);
-	input [(num_inputs*4)-1:0] i_in;
-	output [3:0] o_out;
-
-	parameter num_inputs = 1;
-
-	wire [(num_inputs*4)-5:0] wires;
-
-	genvar i;
-  	generate 
-    	for (i=0; i<num_inputs; i=i+1) begin 
-			if (i == 0) begin
-				assign wires[((i+1)*4)-1:(i*4)] = i_in[((i+1)*4)-1:(i*4)];
-			end
-			else begin
-				
-			end
-		end
-	endgenerate
-endmodule

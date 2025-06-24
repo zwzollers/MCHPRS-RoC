@@ -1,6 +1,15 @@
 use std::time::Duration;
 
-use super::SerialConnection;
+use serialport::SerialPort;
+
+#[derive(Default, Debug)]
+pub struct SerialConnection {
+    port_name: String,
+    baud_rate: u32,
+    timeout: u32,
+    conn: Option<Box<dyn SerialPort>>,
+
+}
 
 impl SerialConnection {
     pub fn new (name: &str, baud: u32, timeout: u32) -> SerialConnection {

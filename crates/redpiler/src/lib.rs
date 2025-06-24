@@ -10,7 +10,7 @@ use mchprs_blocks::BlockPos;
 use mchprs_world::TickEntry;
 use mchprs_world::{for_each_block_mut_optimized, World};
 use passes::make_default_pass_manager;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tracing::{debug, error, trace, warn};
 
@@ -104,9 +104,20 @@ impl CompilerOptions {
         }
         co
     }
+
+    pub fn fpga() -> CompilerOptions {
+        let mut co: CompilerOptions = Default::default();
+        co.backend_variant = BackendVariant::FPGA;
+        co.compile_verilog = true;
+        co.io_only = true;
+        co.optimize = true;
+        co.selection = true;
+
+        co
+    }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Compiler {
     is_active: bool,
     jit: Option<BackendDispatcher>,
@@ -133,7 +144,7 @@ impl Compiler {
 
     pub fn compile<W: World>(
         &mut self,
-        world: &W,
+        world: &Mutex<W>,
         bounds: (BlockPos, BlockPos),
         options: CompilerOptions,
         ticks: Vec<TickEntry>,
@@ -142,7 +153,7 @@ impl Compiler {
         debug!("Starting compile");
         let start = Instant::now();
 
-        let input = CompilerInput { world, bounds };
+        let input = CompilerInput { world: world, bounds };
         let pass_manager = make_default_pass_manager::<W>();
         let graph = pass_manager.run_passes(&options, &input, monitor.clone());
 
@@ -173,6 +184,7 @@ impl Compiler {
             monitor.set_message("Compiling backend".to_string());
             let start = Instant::now();
 
+            
             jit.compile(graph, ticks, &options, monitor.clone());
 
             monitor.inc_progress();
@@ -248,10 +260,16 @@ impl Compiler {
     pub fn has_pending_ticks(&mut self) -> bool {
         self.backend().has_pending_ticks()
     }
+
+    pub fn set_rtps(&mut self, rtps: u32) {
+        if let Some(jit) = &mut self.jit {
+            jit.set_rtps(rtps);
+        }
+    }
 }
 
 pub struct CompilerInput<'w, W: World> {
-    pub world: &'w W,
+    pub world: &'w Mutex<W>,
     pub bounds: (BlockPos, BlockPos),
 }
 

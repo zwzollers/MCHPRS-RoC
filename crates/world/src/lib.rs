@@ -1,5 +1,7 @@
 pub mod storage;
 
+use std::sync::Mutex;
+
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::BlockPos;

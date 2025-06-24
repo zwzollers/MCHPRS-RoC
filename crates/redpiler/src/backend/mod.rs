@@ -10,6 +10,7 @@ use enum_dispatch::enum_dispatch;
 use mchprs_blocks::BlockPos;
 use mchprs_world::{TickEntry, World};
 
+
 #[enum_dispatch]
 pub trait JITBackend {
     fn compile(
@@ -34,12 +35,13 @@ pub trait JITBackend {
     fn has_pending_ticks(&self) -> bool;
     /// Inspect block for debugging
     fn inspect(&mut self, pos: BlockPos);
+    fn set_rtps(&mut self, rtps: u32);
 }
 
 use direct::DirectBackend;
 use fpga::FPGABackend;
 
-#[enum_dispatch(JITBackend)]
+#[enum_dispatch(JITBackend)] 
 pub enum BackendDispatcher {
     DirectBackend,
     FPGABackend,

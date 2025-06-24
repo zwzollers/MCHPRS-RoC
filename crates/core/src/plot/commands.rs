@@ -3,6 +3,7 @@ use crate::player::{Gamemode, PacketSender, PlayerPos};
 use crate::plot::data::sleep_time_for_tps;
 use crate::profile::PlayerProfile;
 use crate::server::Message;
+use fpga::interface::DeviceStatus;
 use mchprs_blocks::items::ItemStack;
 use mchprs_network::packets::clientbound::{
     CCommands, CCommandsNode as Node, CDeclareCommandsNodeParser as Parser, ClientBoundPacket,
@@ -12,6 +13,7 @@ use mchprs_network::PlayerPacketSender;
 use mchprs_redpiler::CompilerOptions;
 use mchprs_save_data::plot_data::{Tps, WorldSendRate};
 use mchprs_text::TextComponent;
+use fpga::compiler::DeviceConfig;
 use once_cell::sync::Lazy;
 use std::ops::Add;
 use std::str::FromStr;
@@ -147,8 +149,8 @@ impl Plot {
             }
             "lock" => {
                 if self.locked_players.insert(self.players[player].entity_id) {
-                    let PlotWorld { x, z, .. } = self.world;
-                    let res = format!("Locked to plot ({}, {}). Use '/p unlock' to unlock.", x, z);
+                    let world = self.world.lock().unwrap();
+                    let res = format!("Locked to plot ({}, {}). Use '/p unlock' to unlock.", world.x, world.z);
                     self.players[player].send_system_message(&res);
                 } else {
                     self.players[player]
@@ -163,7 +165,7 @@ impl Plot {
                 }
             }
             "select" | "sel" => {
-                let corners = self.world.get_corners();
+                let corners = self.world.lock().unwrap().get_corners();
                 self.players[player].worldedit_set_first_position(corners.0);
                 self.players[player].worldedit_set_second_position(corners.1);
             }
@@ -193,7 +195,7 @@ impl Plot {
             "inspect" | "i" => {
                 let player = &self.players[player];
                 let pos = worldedit::ray_trace_block(
-                    &self.world,
+                    &*self.world.lock().unwrap(),
                     player.pos,
                     player.pitch as f64,
                     player.yaw as f64,
@@ -203,12 +205,66 @@ impl Plot {
                     player.send_error_message("Trace failed");
                     return;
                 };
-                self.redpiler.inspect(pos);
+                self.redpiler.lock().unwrap().inspect(pos);
             }
             "reset" | "r" => {
                 self.reset_redpiler();
             }
             _ => self.players[player].send_error_message("Invalid argument for /redpiler"),
+        }
+    }
+
+    /// Handles a command that starts with `/fpga`
+    fn handle_fpga_command(&mut self, player: usize, command: &str, args: &[&str]) {
+        match command {
+            "reset" => {
+
+            }
+            "config" => {
+                let fpga = &mut self.fpgas.lock().unwrap().hardware[0];
+                fpga.config = DeviceConfig::read_config(args[0]);
+                if let Some(config) = &fpga.config {
+                    if config.create_project() {
+                        {
+                            let sb = &mut self.scoreboard.lock().unwrap();
+                            sb.fpga_device_name = config.name.clone();
+                            sb.fpga_device_state = DeviceStatus::Disconnected;
+                            sb.changed = true;
+                        }
+                       
+                        self.players[player].send_system_message("FPGA compiler project created!");
+                    }
+                    else {
+                        self.players[player].send_error_message("Error creating compiler project");
+                    }
+
+                } 
+                else {
+                    self.players[player].send_error_message("Invalid config name");
+                }
+            }
+            "start" => {
+
+            }
+            _ => self.players[player].send_error_message("Invalid argument for /fpga"),
+        }
+    }
+
+        /// Handles a command that starts with `/roc`
+    fn handle_roc_command(&mut self, player: usize, command: &str, args: &[&str]) {
+        match command {
+            "compile" | "c" => {
+                let options = CompilerOptions::fpga();
+                self.reset_redpiler();
+                self.start_redpiler(options, player);
+            }
+            "run" | "r" => {
+
+            }
+            "stop" => {
+
+            }
+            _ => self.players[player].send_error_message("Invalid argument for /fpga"),
         }
     }
 
@@ -307,6 +363,10 @@ impl Plot {
                 self.tps = tps;
                 self.reset_timings();
                 self.players[player].send_system_message("The rtps was successfully set.");
+                match tps {
+                    Tps::Limited(rtps) => self.redpiler.lock().unwrap().set_rtps(rtps),
+                    _ => ()
+                }
             }
             "radv" | "radvance" => {
                 if args.is_empty() {
@@ -323,8 +383,8 @@ impl Plot {
                 let start_time = Instant::now();
                 self.tickn(ticks as u64);
 
-                if self.redpiler.is_active() {
-                    self.redpiler.flush(&mut self.world);
+                if self.is_rp_active() {
+                    { self.redpiler.lock().unwrap().flush(&mut *self.world.lock().unwrap()); }
                 }
                 self.players[player].send_system_message(&format!(
                     "Plot has been advanced by {} ticks ({:?})",
@@ -401,6 +461,22 @@ impl Plot {
                 }
                 let command = args.remove(0);
                 self.handle_redpiler_command(player, command, &args);
+            }
+            "fpga" => {
+                if args.is_empty() {
+                    self.players[player].send_error_message("Invalid number of arguments!");
+                    return false;
+                }
+                let command = args.remove(0);
+                self.handle_fpga_command(player, command, &args);
+            }
+            "roc" => {
+                if args.is_empty() {
+                    self.players[player].send_error_message("Invalid number of arguments!");
+                    return false;
+                }
+                let command = args.remove(0);
+                self.handle_roc_command(player, command, &args);
             }
             "speed" => {
                 if args.len() != 1 {

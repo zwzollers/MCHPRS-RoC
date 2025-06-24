@@ -1,0 +1,19 @@
+[
+    {
+        "name": "DE1-SoC",
+        "device": "5CSEMA5F31C6",
+        "family": "Cyclone V",
+        "compiler": "Quartus",
+        "version": "23.1",
+        "logic_elements": 32780,
+        "system_clk": 50000000,
+        "pin_assignments": {
+            "i_clk": "AF14",
+            "i_rx": "AJ17", 
+            "i_rst": "AA14", 
+            "o_tx": "AJ16", 
+            "o_debug": "V16",
+            "o_tick": "W16"
+        }          
+    }
+]

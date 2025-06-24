@@ -289,6 +289,10 @@ impl JITBackend for DirectBackend {
     fn has_pending_ticks(&self) -> bool {
         self.scheduler.has_pending_ticks()
     }
+
+    fn set_rtps(&mut self, rtps: u32) {
+        
+    }
 }
 
 /// Set node for use in `update`. None of the nodes here have usable output power,

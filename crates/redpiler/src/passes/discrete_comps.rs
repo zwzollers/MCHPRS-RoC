@@ -46,72 +46,70 @@ impl<W: World> Pass<W> for DiscreteComparators {
 
 fn search (graph: &mut CompileGraph, node: NodeIdx, mode: ComparatorMode) {
 
-    for neighbor in graph.neighbors_directed(node, Direction::Incoming) {
-        if matches!(graph[neighbor].ty, NodeType::Comparator { .. }) {
-            return
-        }
-    }
+    // for neighbor in graph.neighbors_directed(node, Direction::Incoming) {
+    //     if matches!(graph[neighbor].ty, NodeType::Comparator { .. }) {
+    //         return
+    //     }
+    // }
 
-    let mut inputs: Vec<CompInput> = Vec::new();
+    // let mut inputs: Vec<CompInput> = Vec::new();
 
-    let mut direct_const: u8 = 0;
-    let mut side_const: u8 = 0;
+    // let mut direct_const: u8 = 0;
+    // let mut side_const: u8 = 0;
 
-    for i_node in graph.neighbors_directed(node, Direction::Incoming) {
-        let links: Vec<&CompileLink> = Vec::new(); 
-        for i_edge in graph.edges_connecting(i_node, node) {
-            links.push(i_edge.weight());
-        }
+    // for i_node in graph.neighbors_directed(node, Direction::Incoming) {
+    //     let links: Vec<&CompileLink> = Vec::new(); 
+    //     for i_edge in graph.edges_connecting(i_node, node) {
+    //         links.push(i_edge.weight());
+    //     }
 
-        match inputs
+    //     match inputs
             
 
-        } else {
-            let input =  if links.len() == 2 {
-                if links[0].ty == LinkType::Default {
-                    InputWeight::Both(links[0].ss, links[1].ss)
-                } else {
-                    InputWeight::Both(links[1].ss, links[0].ss)
-                } 
-            } else {
-                if links[0].ty == LinkType::Default {
-                    InputWeight::Default(links[0].ss)
-                } else {
-                    InputWeight::Side(links[0].ss)
-                } 
-            };
+    //     } else {
+    //         let input =  if links.len() == 2 {
+    //             if links[0].ty == LinkType::Default {
+    //                 InputWeight::Both(links[0].ss, links[1].ss)
+    //             } else {
+    //                 InputWeight::Both(links[1].ss, links[0].ss)
+    //             } 
+    //         } else {
+    //             if links[0].ty == LinkType::Default {
+    //                 InputWeight::Default(links[0].ss)
+    //             } else {
+    //                 InputWeight::Side(links[0].ss)
+    //             } 
+    //         };
     
-            inputs.push(CompInput{id:i_node, w:input});
-        }
-    }
+    //         inputs.push(CompInput{id:i_node, w:input});
+    //     }
+    // }
 
 
-    for i in 0..inputs.len() {
-        let 
-        for j in i..inputs.len() {
+    // for i in 0..inputs.len() {
+    //     let 
+    //     for j in i..inputs.len() {
 
-        }
-    }
+    //     }
+    // }
 
-    let mut edges: Vec<(NodeIdx, NodeIdx, CompileLink)> = Vec::new();
-    for edge in graph.edges(node) {
-        let source = edge.source();
-        let target = edge.target();
-        let weight = edge.weight();
+    // let mut edges: Vec<(NodeIdx, NodeIdx, CompileLink)> = Vec::new();
+    // for edge in graph.edges(node) {
+    //     let source = edge.source();
+    //     let target = edge.target();
+    //     let weight = edge.weight();
 
-        if source == node {
-            edges.push((d_comp, target, CompileLink{ss:weight.ss, ty:weight.ty}));
-        }
-        else {
-            edges.push((source, d_comp, CompileLink{ss:weight.ss, ty:weight.ty}));
-        }
-    }
-    for (o_node,i_node, link) in edges {
-        graph.add_edge(o_node, i_node, link);
-    }
+    //     if source == node {
+    //         edges.push((d_comp, target, CompileLink{ss:weight.ss, ty:weight.ty}));
+    //     }
+    //     else {
+    //         edges.push((source, d_comp, CompileLink{ss:weight.ss, ty:weight.ty}));
+    //     }
+    // }
+    // for (o_node,i_node, link) in edges {
+    //     graph.add_edge(o_node, i_node, link);
+    // }
 
-    graph.remove_node(node);
-
-
+    // graph.remove_node(node);
 }
 

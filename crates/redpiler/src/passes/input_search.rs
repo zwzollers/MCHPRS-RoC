@@ -23,7 +23,8 @@ impl<W: World> Pass<W> for InputSearch {
         _: &CompilerOptions,
         input: &CompilerInput<'_, W>,
     ) {
-        let mut state = InputSearchState::new(input.world, graph);
+        let plot = &*input.world.lock().unwrap();
+        let mut state = InputSearchState::new(plot, graph);
         state.search();
     }
 

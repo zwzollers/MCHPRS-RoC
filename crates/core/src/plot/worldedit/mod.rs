@@ -64,8 +64,8 @@ pub fn execute_command(
     }
 
     if command.requires_positions {
-        let plot_x = plot.world.x;
-        let plot_z = plot.world.z;
+        let plot_x = { plot.world.lock().unwrap().x };
+        let plot_z = {plot.world.lock().unwrap().z };
         if player.first_position.is_none() || player.second_position.is_none() {
             player.send_error_message("Make a region selection first.");
             return true;
@@ -142,7 +142,7 @@ pub fn execute_command(
         plot.reset_redpiler();
     }
     let ctx = CommandExecuteContext {
-        plot: &mut plot.world,
+        plot: &mut plot.world.lock().unwrap(),
         player: &mut plot.players[player_idx],
         arguments,
         flags: ctx_flags,

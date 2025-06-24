@@ -28,10 +28,10 @@ impl<W: World> Pass<W> for IdentifyNodes {
         &self,
         graph: &mut CompileGraph,
         options: &CompilerOptions,
-        input: &CompilerInput<'_, W>,
+        input: &CompilerInput<W>,
     ) {
         let ignore_wires = options.optimize || (options.backend_variant == BackendVariant::FPGA);
-        let plot = input.world;
+        let plot = &*input.world.lock().unwrap();
 
         let mut first_pass = FxHashMap::default();
         let mut second_pass = FxHashSet::default();

@@ -9,12 +9,14 @@ use std::io::prelude::*;
 pub fn generate_verilog(graph: &CompileGraph, path: &str) {
 
     let mut verilog = 
-    "module redstone (tick, inputs, outputs);
-        \tinput tick;
-        \tinput [num_inputs-1:0] inputs;
-        \toutput [num_outputs:0] outputs;\n
-        
-    parameter num_outputs = 1, num_inputs = 1;\n\n".to_owned();
+"module RoC #(
+    parameter OUTPUTS,
+    parameter INPUTS
+) (
+    input                   tick,
+    input   [INPUTS-1:0]    inputs,
+    output  [OUTPUTS-1:0]   outputs
+);\n\n".to_owned();
 
     let mut input_count = 0;
     let mut output_count = 0;
