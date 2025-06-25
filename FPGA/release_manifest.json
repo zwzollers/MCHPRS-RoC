@@ -8,11 +8,12 @@
         "src/redstone/tps_clk_div.sv",
         "src/top.sv",
         
-        "ip/ref_clk.cmp",
-        "ip/ref_clk.qip",
-        "ip/ref_clk.sip",
-        "ip/ref_clk/ref_clk_0002.qip",
-        "ip/ref_clk/ref_clk_0002.v",
+        "ip/tick_clk.cmp",
+        "ip/tick_clk.qip",
+        "ip/tick_clk.sip",
+        "ip/tick_clk.v",
+        "ip/tick_clk/tick_clk_0002.qip",
+        "ip/tick_clk/tick_clk_0002.v",
 
         "config/devices.json",
 

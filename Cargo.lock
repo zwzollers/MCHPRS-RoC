@@ -1289,6 +1289,7 @@ dependencies = [
  "rustc-hash 2.0.0",
  "serde",
  "serde_json",
+ "serialport",
  "sha2",
  "tokio",
  "toml",

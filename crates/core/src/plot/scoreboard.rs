@@ -44,7 +44,7 @@ impl Scoreboard {
         sb.current_state = sb.to_str_vec();
         sb
     }
-    
+
     fn to_str_vec(&self) -> Vec<String> {
         let mut state_str: Vec<String> = Vec::new();
 
@@ -74,9 +74,9 @@ impl Scoreboard {
         }
 
         state_str.extend(flags.iter().map(|s| s.to_string()));
-        state_str.push(format!("§fQuartus: {}",self.fpga_compiler_state.to_str()));
         state_str.push("----------".to_string());
-        state_str.push(format!("§fFPGA: {}",self.fpga_device_state.to_str()));
+        state_str.push(format!("§fRoC: {}",self.fpga_compiler_state.to_str()));
+        
         if self.fpga_device_state != DeviceStatus::Inactive {
             state_str.push(format!("§7  device: §a{}",self.fpga_device_name.clone()));
             state_str.push(format!("§7  ping: §a{}us",self.fpga_ping));

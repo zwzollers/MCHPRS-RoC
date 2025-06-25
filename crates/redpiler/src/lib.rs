@@ -117,7 +117,7 @@ impl CompilerOptions {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct Compiler {
     is_active: bool,
     jit: Option<BackendDispatcher>,

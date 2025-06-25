@@ -730,45 +730,37 @@ impl Plot {
 
     fn start_redpiler(&mut self, options: CompilerOptions, player: usize) {
         debug!("Starting redpiler");
-        {
-            let sb = &mut self.scoreboard.lock().unwrap();
-            sb.redpiler_state = RedpilerState::Compiling;
-            sb.redpiler_options = options.clone();
-            sb.changed = true;
-        }
 
         let plr: &Player = &self.players[player];
-        {
-            let bounds = if options.selection {
-                    let pos = (plr.first_position, plr.second_position);
-                    if pos.0.is_some() && pos.1.is_some() {
-                        (pos.0.unwrap(), pos.1.unwrap())
-                    } else {
-                        self.world.lock().unwrap().get_corners()
-                    }
+        let bounds = if options.selection {
+                let pos = (plr.first_position, plr.second_position);
+                if pos.0.is_some() && pos.1.is_some() {
+                    (pos.0.unwrap(), pos.1.unwrap())
                 } else {
                     self.world.lock().unwrap().get_corners()
-                }.clone();
-            // TODO: use monitor
-            let monitor = Default::default();
-            let ticks = { self.world.lock().unwrap().to_be_ticked.drain(..).collect() };
-
-            let world = Arc::clone(&self.world);
-            let redpiler = Arc::clone(&self.redpiler);
-            let scoreboard = Arc::clone(&self.scoreboard);
-
-            thread::spawn(move || {
-                redpiler.lock().unwrap().compile(&world, bounds, options, ticks, monitor);
-                let mut sb = scoreboard.lock().unwrap();
-                sb.redpiler_state = RedpilerState::Running;
-                sb.changed = true;
-
-                if options.backend_variant == BackendVariant::FPGA {
-
                 }
-            });
+            } else {
+                self.world.lock().unwrap().get_corners()
+            }.clone();
+        // TODO: use monitor
+        let monitor = Default::default();
+        let ticks = { self.world.lock().unwrap().to_be_ticked.drain(..).collect() };
 
-        }
+        let world = Arc::clone(&self.world);
+        let redpiler = Arc::clone(&self.redpiler);
+
+        thread::spawn(move || {
+            let fpga = options.backend_variant == BackendVariant::FPGA;
+            redpiler.lock().unwrap().compile(&world, bounds, options, ticks, monitor);
+        
+            if fpga {
+
+            }
+            else {
+                
+            }
+        });
+
 
         self.reset_timings();
     }

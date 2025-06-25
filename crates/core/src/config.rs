@@ -74,10 +74,7 @@ gen_config! {
     luckperms: Option<PermissionsConfig> = None,
     block_in_hitbox: bool = true,
     auto_redpiler: bool = false,
-    velocity: Option<VelocityConfig> = None,
-    fpga_compiler: String = "Quartus".to_string(),
-    fpga_family: String = "CycloneV".to_string(),
-    fpga_device: String = "5CSEMA5F31A7".to_string()
+    velocity: Option<VelocityConfig> = None
 }
 
 #[derive(Serialize, Deserialize)]
