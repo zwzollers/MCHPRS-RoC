@@ -17,9 +17,7 @@
 
         "config/devices.json",
 
-        "prj/",
-        "bin/configs/",
-        "bin/redstone/",
+        "bin/",
 
         "logs/serial/",
         "logs/compiler/"

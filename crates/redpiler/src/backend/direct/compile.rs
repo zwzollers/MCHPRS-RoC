@@ -143,7 +143,6 @@ pub fn compile(
     graph: CompileGraph,
     ticks: Vec<TickEntry>,
     options: &CompilerOptions,
-    _monitor: Arc<TaskMonitor>,
 ) {
     // Create a mapping from compile to backend node indices
     let mut nodes_map = FxHashMap::with_capacity_and_hasher(graph.node_count(), Default::default());

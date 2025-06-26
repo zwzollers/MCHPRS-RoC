@@ -1,6 +1,0 @@
-use crate::Plot::PlotWorld;
-
-pub struct FPGA {
-    plot: Arc<Mutex<PlotWorld>>,
-    
-}

@@ -7,7 +7,6 @@ mod update;
 
 use super::JITBackend;
 use crate::compile_graph::CompileGraph;
-use crate::task_monitor::TaskMonitor;
 use crate::{block_powered_mut, CompilerOptions};
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::{Block, ComparatorMode, Instrument};
@@ -17,7 +16,6 @@ use mchprs_world::World;
 use mchprs_world::{TickEntry, TickPriority};
 use node::{Node, NodeId, NodeType, Nodes};
 use rustc_hash::FxHashMap;
-use std::sync::Arc;
 use std::{fmt, mem};
 use tracing::{debug, warn};
 
@@ -280,19 +278,17 @@ impl JITBackend for DirectBackend {
         &mut self,
         graph: CompileGraph,
         ticks: Vec<TickEntry>,
+        _name: String,
         options: &CompilerOptions,
-        monitor: Arc<TaskMonitor>,
     ) {
-        compile::compile(self, graph, ticks, options, monitor);
+        compile::compile(self, graph, ticks, options);
     }
 
     fn has_pending_ticks(&self) -> bool {
         self.scheduler.has_pending_ticks()
     }
 
-    fn set_rtps(&mut self, rtps: u32) {
-        
-    }
+    fn set_rtps(&mut self, _rtps: u32) { }
 }
 
 /// Set node for use in `update`. None of the nodes here have usable output power,

@@ -10,7 +10,7 @@ use mchprs_network::packets::clientbound::{
 };
 use mchprs_network::packets::PacketEncoder;
 use mchprs_network::PlayerPacketSender;
-use mchprs_redpiler::CompilerOptions;
+use mchprs_redpiler::{BackendVariant, CompilerOptions};
 use mchprs_save_data::plot_data::{Tps, WorldSendRate};
 use mchprs_text::TextComponent;
 use fpga::compiler::DeviceConfig;
@@ -187,8 +187,8 @@ impl Plot {
                     self.players[player].send_system_message(msg);
                 }
 
-                self.reset_redpiler();
-                self.start_redpiler(options, player);
+                self.reset_backend();
+                self.start_backend(BackendVariant::Direct, options, "Redpiler".to_string(), player);
 
                 debug!("Compile took {:?}", start_time.elapsed());
             }
@@ -205,10 +205,13 @@ impl Plot {
                     player.send_error_message("Trace failed");
                     return;
                 };
-                self.redpiler.lock().unwrap().inspect(pos);
+                if !self.active_backend.is_none() {
+                    self.backends.lock().unwrap()[self.active_backend.unwrap()].inspect(pos);
+                }
+                
             }
             "reset" | "r" => {
-                self.reset_redpiler();
+                self.reset_backend();
             }
             _ => self.players[player].send_error_message("Invalid argument for /redpiler"),
         }
@@ -224,19 +227,12 @@ impl Plot {
                 let fpga = &mut self.fpgas.lock().unwrap().hardware[0];
                 fpga.config = DeviceConfig::read_config(args[0]);
                 if let Some(config) = &fpga.config {
-                    if config.create_project() {
-                        {
-                            let sb = &mut self.scoreboard.lock().unwrap();
-                            sb.fpga_device_name = config.name.clone();
-                            sb.fpga_device_state = DeviceStatus::Disconnected;
-                            sb.changed = true;
-                        }
-                       
-                        self.players[player].send_system_message("FPGA compiler project created!");
-                    }
-                    else {
-                        self.players[player].send_error_message("Error creating compiler project");
-                    }
+                    // if config.create_project() {
+                    //     self.players[player].send_system_message("FPGA compiler project created!");
+                    // }
+                    // else {
+                    //     self.players[player].send_error_message("Error creating compiler project");
+                    // }
 
                 } 
                 else {
@@ -255,8 +251,8 @@ impl Plot {
         match command {
             "compile" | "c" => {
                 let options = CompilerOptions::fpga();
-                self.reset_redpiler();
-                self.start_redpiler(options, player);
+                self.reset_backend();
+                self.start_backend(BackendVariant::FPGA, options, args[0].to_string(), player);
             }
             "run" | "r" => {
 
@@ -364,7 +360,11 @@ impl Plot {
                 self.reset_timings();
                 self.players[player].send_system_message("The rtps was successfully set.");
                 match tps {
-                    Tps::Limited(rtps) => self.redpiler.lock().unwrap().set_rtps(rtps),
+                    Tps::Limited(rtps) => {
+                        if !self.active_backend.is_none() {
+                            self.backends.lock().unwrap()[self.active_backend.unwrap()].set_rtps(rtps);
+                        }
+                    }
                     _ => ()
                 }
             }
@@ -383,8 +383,8 @@ impl Plot {
                 let start_time = Instant::now();
                 self.tickn(ticks as u64);
 
-                if self.is_rp_active() {
-                    { self.redpiler.lock().unwrap().flush(&mut *self.world.lock().unwrap()); }
+                if !self.active_backend.is_none() {
+                    self.backends.lock().unwrap()[self.active_backend.unwrap()].flush(&mut *self.world.lock().unwrap());
                 }
                 self.players[player].send_system_message(&format!(
                     "Plot has been advanced by {} ticks ({:?})",

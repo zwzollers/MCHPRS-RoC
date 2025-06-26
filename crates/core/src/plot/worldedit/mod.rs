@@ -139,7 +139,7 @@ pub fn execute_command(
         }
     }
     if command.mutates_world {
-        plot.reset_redpiler();
+        plot.reset_backend();
     }
     let ctx = CommandExecuteContext {
         plot: &mut plot.world.lock().unwrap(),

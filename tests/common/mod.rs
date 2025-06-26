@@ -1,7 +1,7 @@
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::BlockPos;
-use mchprs_redpiler::{BackendVariant, Compiler, CompilerOptions};
+use mchprs_redpiler::{BackendVariant, Backend, CompilerOptions};
 use mchprs_world::storage::Chunk;
 use mchprs_world::{TickEntry, TickPriority, World};
 
@@ -124,7 +124,7 @@ impl World for TestWorld {
 
 struct RedpilerInstance {
     options: CompilerOptions,
-    compiler: Compiler,
+    compiler: Backend,
 }
 
 impl RedpilerInstance {
@@ -133,7 +133,7 @@ impl RedpilerInstance {
             backend_variant: variant,
             ..Default::default()
         };
-        let mut compiler = Compiler::default();
+        let mut compiler = Backend::default();
         let max = world.size * 16 - 1;
         let bounds = (BlockPos::new(0, 0, 0), BlockPos::new(max, max, max));
         let monitor = Default::default();

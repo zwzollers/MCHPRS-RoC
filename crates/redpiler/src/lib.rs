@@ -10,6 +10,9 @@ use mchprs_blocks::BlockPos;
 use mchprs_world::TickEntry;
 use mchprs_world::{for_each_block_mut_optimized, World};
 use passes::make_default_pass_manager;
+use std::fs::read_dir;
+use std::path::Path;
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tracing::{debug, error, trace, warn};
@@ -105,6 +108,30 @@ impl CompilerOptions {
         co
     }
 
+        pub fn to_str_vec(&self) -> Vec<String> {
+        let mut flags = Vec::new();
+        let backend = self.backend_variant;
+        if self.optimize && backend == BackendVariant::Direct{
+            flags.push("    §3- optimize".to_string());
+        }
+        if self.export && backend == BackendVariant::Direct{
+            flags.push("    §3- export".to_string());
+        }
+        if self.io_only && backend == BackendVariant::Direct{
+            flags.push("    §3- io only".to_string());
+        }
+        if self.update && backend == BackendVariant::Direct{
+            flags.push("    §3- update".to_string());
+        }
+        if self.wire_dot_out && backend == BackendVariant::Direct{
+            flags.push("    §3- wire dot out".to_string());
+        }
+        if self.selection && backend == BackendVariant::Direct{
+            flags.push("    §3- selection only".to_string());
+        }
+        flags
+    }
+
     pub fn fpga() -> CompilerOptions {
         let mut co: CompilerOptions = Default::default();
         co.backend_variant = BackendVariant::FPGA;
@@ -117,94 +144,100 @@ impl CompilerOptions {
     }
 }
 
-#[derive(Default)]
-pub struct Compiler {
+pub enum BackendStatus {
+    Stopped,
+    Redpiling,
+    Compiling,
+    Ready,
+    Active
+}
+
+impl BackendStatus {
+    pub fn to_str(&self) -> String {
+        match self {
+            BackendStatus::Stopped =>   "§c  Stopped".to_string(),
+            BackendStatus::Redpiling => "§eRedpiling".to_string(),
+            BackendStatus::Compiling => "§eCompiling".to_string(),
+            BackendStatus::Ready =>     "§2    Ready".to_string(),
+            BackendStatus::Active =>    "§a   Active".to_string(),
+        }
+    }
+}
+
+pub enum BackendMsg {
+    BackendStatus{backend: String, status: BackendStatus}
+}
+
+pub struct Backend {
     is_active: bool,
-    jit: Option<BackendDispatcher>,
+    sender: Sender<BackendMsg>,
+    name: String,
+    jit: BackendDispatcher,
     options: CompilerOptions,
 }
 
-impl Compiler {
-    pub fn is_active(&self) -> bool {
-        self.is_active
-    }
-
-    pub fn current_flags(&self) -> Option<&CompilerOptions> {
-        match self.is_active {
-            true => Some(&self.options),
-            false => None,
-        }
-    }
-
-    /// Use just-in-time compilation with a `JITBackend` such as the `DirectBackend`.
-    /// Requires recompilation to take effect.
-    pub fn use_jit(&mut self, jit: BackendDispatcher) {
-        self.jit = Some(jit);
-    }
-
-    pub fn compile<W: World>(
-        &mut self,
+impl Backend {
+    pub fn new <W: World>(
+        sender: Sender<BackendMsg>,
+        name: String,
+        plot: String,
         world: &Mutex<W>,
         bounds: (BlockPos, BlockPos),
         options: CompilerOptions,
         ticks: Vec<TickEntry>,
-        monitor: Arc<TaskMonitor>,
-    ) {
+    ) -> Backend{
         debug!("Starting compile");
         let start = Instant::now();
 
         let input = CompilerInput { world: world, bounds };
         let pass_manager = make_default_pass_manager::<W>();
-        let graph = pass_manager.run_passes(&options, &input, monitor.clone());
+        let graph = pass_manager.run_passes(&options, &input);
 
-        if monitor.cancelled() {
-            return;
-        }
-
-        let replace_jit = match self.jit {
-            Some(BackendDispatcher::DirectBackend(_)) => {
-                options.backend_variant != BackendVariant::Direct
-            }
-            Some(BackendDispatcher::FPGABackend(_)) => {
-                options.backend_variant != BackendVariant::FPGA
-            }
-            None => true,
+        let mut jit = match options.backend_variant {
+            BackendVariant::Direct => BackendDispatcher::DirectBackend(Default::default()),
+            BackendVariant::FPGA => BackendDispatcher::FPGABackend(Default::default())
         };
-        if replace_jit {
-            debug!("Switching jit backend to {:?}", options.backend_variant);
-            let jit = match options.backend_variant {
-                BackendVariant::Direct => BackendDispatcher::DirectBackend(Default::default()),
-                BackendVariant::FPGA => BackendDispatcher::FPGABackend(Default::default()),
-            };
-            self.use_jit(jit);
-        }
 
-        if let Some(jit) = &mut self.jit {
-            trace!("Compiling backend");
-            monitor.set_message("Compiling backend".to_string());
-            let start = Instant::now();
+        _ = sender.send(BackendMsg::BackendStatus { backend: name.clone(), status: BackendStatus::Compiling });
 
-            
-            jit.compile(graph, ticks, &options, monitor.clone());
+        jit.compile(
+            graph,
+            ticks,
+            format!("{plot}/{name}"),
+            &options);
 
-            monitor.inc_progress();
-            trace!("Backend compiled in {:?}", start.elapsed());
-        } else {
-            error!("Cannot compile without JIT variant selected");
-        }
-
-        self.options = options;
-        self.is_active = true;
+        _ = sender.send(BackendMsg::BackendStatus { backend: name.clone(), status: BackendStatus::Ready });
         debug!("Compile completed in {:?}", start.elapsed());
+
+        Backend{ 
+            is_active: false,
+            sender: sender,
+            name: name,
+            jit: jit,
+            options: options,
+        }
+    }
+
+    pub fn load(plot: String) -> Vec<Backend> {
+        let backend_list = Vec::new();
+        let path_str = &format!("FPGA/bin/{plot}");
+        let path = Path::new(path_str);
+
+        if path.exists() {
+            for backend in read_dir(path).unwrap() {
+                
+            }
+        }
+        backend_list
+    }
+
+    pub fn options(&self) -> &CompilerOptions {
+        &self.options
     }
 
     pub fn reset<W: World>(&mut self, world: &mut W, bounds: (BlockPos, BlockPos)) {
-        if self.is_active {
-            self.is_active = false;
-            if let Some(jit) = &mut self.jit {
-                jit.reset(world, self.options.io_only)
-            }
-        }
+        let io_only = self.options.io_only;
+        self.backend().reset(world, io_only);
 
         if self.options.update {
             let (first_pos, second_pos) = bounds;
@@ -221,11 +254,7 @@ impl Compiler {
             self.is_active,
             "tried to get redpiler backend when inactive"
         );
-        if let Some(jit) = &mut self.jit {
-            jit
-        } else {
-            panic!("redpiler is active but is missing jit backend");
-        }
+        &mut self.jit
     }
 
     pub fn tick(&mut self) {
@@ -250,11 +279,7 @@ impl Compiler {
     }
 
     pub fn inspect(&mut self, pos: BlockPos) {
-        if let Some(backend) = &mut self.jit {
-            backend.inspect(pos);
-        } else {
-            debug!("cannot inspect when backend is not running");
-        }
+        self.backend().inspect(pos);
     }
 
     pub fn has_pending_ticks(&mut self) -> bool {
@@ -262,9 +287,7 @@ impl Compiler {
     }
 
     pub fn set_rtps(&mut self, rtps: u32) {
-        if let Some(jit) = &mut self.jit {
-            jit.set_rtps(rtps);
-        }
+        self.backend().set_rtps(rtps);
     }
 }
 

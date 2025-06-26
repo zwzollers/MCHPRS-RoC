@@ -52,26 +52,17 @@ impl<'p, W: World> PassManager<'p, W> {
         &self,
         options: &CompilerOptions,
         input: &CompilerInput<'_, W>,
-        monitor: Arc<TaskMonitor>,
     ) -> CompileGraph {
         let mut graph = CompileGraph::new();
-
-        // Add one for the backend compile step
-        monitor.set_max_progress(self.passes.len() + 1);
-
+    
         for &pass in self.passes {
             if !pass.should_run(options) {
                 trace!("Skipping pass: {}", pass.name());
-                monitor.inc_progress();
                 continue;
             }
 
-            if monitor.cancelled() {
-                return graph;
-            }
 
             trace!("Running pass: {}", pass.name());
-            monitor.set_message(pass.status_message().to_string());
             let start = Instant::now();
 
             pass.run_pass(&mut graph, options, input);
@@ -79,7 +70,6 @@ impl<'p, W: World> PassManager<'p, W> {
             trace!("Completed pass in {:?}", start.elapsed());
             trace!("node_count: {}", graph.node_count());
             trace!("edge_count: {}", graph.edge_count());
-            monitor.inc_progress();
         }
 
         graph

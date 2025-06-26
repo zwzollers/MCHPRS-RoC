@@ -3,39 +3,14 @@ use mchprs_network::packets::clientbound::{
     CDisplayObjective, CResetScore, CUpdateObjectives, CUpdateScore, ClientBoundPacket,
     ObjectiveNumberFormat,
 };
-use mchprs_redpiler::{BackendVariant, CompilerOptions};
+use mchprs_redpiler::{BackendStatus, BackendMsg, CompilerOptions};
 use mchprs_text::{ColorCode, TextComponentBuilder};
-use fpga::{compiler::CompilerStatus, interface::DeviceStatus};
-
-#[derive(PartialEq, Eq, Default, Clone, Copy)]
-pub enum RedpilerState {
-    #[default]
-    Stopped,
-    Compiling,
-    Running,
-}
-
-impl RedpilerState {
-    fn to_str(self) -> &'static str {
-        match self {
-            RedpilerState::Stopped => "§cStopped",
-            RedpilerState::Compiling => "§eCompiling",
-            RedpilerState::Running => "§aRunning",
-        }
-    }
-}
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct Scoreboard {
-    pub redpiler_state: RedpilerState,
-    pub redpiler_options: CompilerOptions,
-    pub fpga_compiler_state: CompilerStatus,
-    pub fpga_device_name: String,
-    pub fpga_ping: u32,
-    pub fpga_device_state: DeviceStatus,
-
+    backend_list: HashMap<String, (CompilerOptions, BackendStatus)>,
     current_state: Vec<String>,
-    pub changed: bool
 }
 
 impl Scoreboard {
@@ -46,53 +21,40 @@ impl Scoreboard {
     }
 
     fn to_str_vec(&self) -> Vec<String> {
-        let mut state_str: Vec<String> = Vec::new();
+        let mut sb: Vec<String> = Vec::new();
 
-        state_str.push(format!("§fRedpiler: §a§l{}",self.redpiler_state.to_str()));
-
-        let mut flags = Vec::new();
-        if self.redpiler_options.optimize {
-            flags.push("    §9- optimize");
-        }
-        if self.redpiler_options.export {
-            flags.push("    §9- export");
-        }
-        if self.redpiler_options.io_only {
-            flags.push("    §9- io only");
-        }
-        if self.redpiler_options.update {
-            flags.push("    §9- update");
-        }
-        if self.redpiler_options.wire_dot_out {
-            flags.push("    §9- wire dot out");
-        }
-        if self.redpiler_options.selection {
-            flags.push("    §9- selection only");
-        }
-        if self.redpiler_options.backend_variant == BackendVariant::FPGA {
-            flags.push("    §9- FPGA");
+        for (name, (options, status)) in &self.backend_list {
+            sb.push(format!("§f{:15} {}", name, status.to_str()));
+            sb.extend(options.to_str_vec());
         }
 
-        state_str.extend(flags.iter().map(|s| s.to_string()));
-        state_str.push("----------".to_string());
-        state_str.push(format!("§fRoC: {}",self.fpga_compiler_state.to_str()));
+        // state_str.push(format!("§fRoC: {}",self.fpga_compiler_state.to_str()));
         
-        if self.fpga_device_state != DeviceStatus::Inactive {
-            state_str.push(format!("§7  device: §a{}",self.fpga_device_name.clone()));
-            state_str.push(format!("§7  ping: §a{}us",self.fpga_ping));
-            state_str.push(format!("§7  utilization: §a22%"));
-        }
+        // if self.fpga_device_state != DeviceStatus::Inactive {
+        //     state_str.push(format!("§7  device: §a{}",self.fpga_device_name.clone()));
+        //     state_str.push(format!("§7  ping: §a{}us",self.fpga_ping));
+        //     state_str.push(format!("§7  utilization: §a22%"));
+        // }
         
 
-        state_str
+        sb
+    }
+
+    pub fn add_backend(&mut self, name: String, options: CompilerOptions) {
+        self.backend_list.insert(name, (options, BackendStatus::Redpiling));
     }
 
     pub fn update (&mut self, players: &[Player]) {
-        if self.changed {
-            self.changed = false;
-            self.set_lines(players, self.to_str_vec());
-        }
+        self.set_lines(players, self.to_str_vec());
         
+    }
+
+    pub fn parse_scoreboard_msg (&mut self, msg: BackendMsg) {
+        match msg {
+            BackendMsg::BackendStatus { backend, status } => {
+                self.backend_list.get_mut(&backend).unwrap().1 = status;
+            }
+        }
     }
 
      fn make_update_packet(&self, line: usize) -> CUpdateScore {
@@ -101,7 +63,7 @@ impl Scoreboard {
             objective_name: "status".to_string(),
             value: (self.current_state.len() - line) as i32,
             display_name: None,
-            number_format: None,
+            number_format: Some(ObjectiveNumberFormat::Blank),
         }
     }
 

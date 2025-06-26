@@ -5,8 +5,9 @@ use redpiler_graph::NodeId;
 use crate::compile_graph::{CompileGraph, LinkType, NodeType};
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
 
-pub fn generate_verilog(graph: &CompileGraph, path: &str) {
+pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
 
     let mut verilog = 
 "module RoC #(
@@ -67,8 +68,11 @@ pub fn generate_verilog(graph: &CompileGraph, path: &str) {
         }
     }
     verilog.push_str("endmodule");
+
+    let prefix = path.parent().unwrap();
+    std::fs::create_dir_all(prefix).unwrap();
     let mut file = File::create(path).unwrap();
-    match file.write_all(verilog.as_bytes()) {
+    match file.write(verilog.as_bytes()) {
         Err(..) => println!("    Error Writing to file"),
         _ => ()
     }

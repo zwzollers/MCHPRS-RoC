@@ -17,23 +17,20 @@ pub trait JITBackend {
         &mut self,
         graph: CompileGraph,
         ticks: Vec<TickEntry>,
-        options: &CompilerOptions,
-        monitor: Arc<TaskMonitor>,
+        path: String,
+        options: &CompilerOptions,  
     );
     fn tick(&mut self);
-
     fn tickn(&mut self, ticks: u64) {
         for _ in 0..ticks {
             self.tick();
         }
     }
-
     fn on_use_block(&mut self, pos: BlockPos);
     fn set_pressure_plate(&mut self, pos: BlockPos, powered: bool);
     fn flush<W: World>(&mut self, world: &mut W, io_only: bool);
     fn reset<W: World>(&mut self, world: &mut W, io_only: bool);
     fn has_pending_ticks(&self) -> bool;
-    /// Inspect block for debugging
     fn inspect(&mut self, pos: BlockPos);
     fn set_rtps(&mut self, rtps: u32);
 }
