@@ -1,5 +1,5 @@
 [package]
-name = "mchprs_redpiler"
+name = "mchprs_backend"
 version = "0.1.0"
 edition = "2021"
 
@@ -19,4 +19,4 @@ mchprs_blocks = { path = "../blocks" }
 mchprs_world = { path = "../world" }
 mchprs_redstone = { path = "../redstone" }
 fpga = { path = "../fpga" }
-
+mchprs_redpiler = { path = "../redpiler" }

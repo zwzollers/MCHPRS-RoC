@@ -1,5 +1,5 @@
-use crate::compile_graph::{CompileGraph, LinkType, NodeIdx};
-use crate::{CompilerOptions, TaskMonitor};
+use mchprs_redpiler::compile_graph::{CompileGraph, LinkType, NodeIdx};
+use mchprs_redpiler::CompilerOptions;
 use itertools::Itertools;
 use mchprs_blocks::blocks::{Block, Instrument};
 use mchprs_blocks::BlockPos;
@@ -8,7 +8,6 @@ use petgraph::visit::EdgeRef;
 use petgraph::Direction;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
-use std::sync::Arc;
 use tracing::trace;
 
 use super::node::{ForwardLink, Node, NodeId, NodeInput, NodeType, Nodes, NonMaxU8};
@@ -67,7 +66,7 @@ fn compile_node(
     stats.default_link_count += default_input_count;
     stats.side_link_count += side_input_count;
 
-    use crate::compile_graph::NodeType as CNodeType;
+    use mchprs_redpiler::compile_graph::NodeType as CNodeType;
     let updates = if node.ty != CNodeType::Constant {
         graph
             .edges_directed(node_idx, Direction::Outgoing)

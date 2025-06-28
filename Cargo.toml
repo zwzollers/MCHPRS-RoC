@@ -1,6 +1,3 @@
-[workspace]
-members = [ "crates/fpga","crates/proc_macros", "crates/redpiler_graph"]
-
 [package]
 name = "mchprs"
 authors.workspace = true

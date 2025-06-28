@@ -6,8 +6,8 @@ mod tick;
 mod update;
 
 use super::JITBackend;
-use crate::compile_graph::CompileGraph;
-use crate::{block_powered_mut, CompilerOptions};
+use mchprs_redpiler::compile_graph::CompileGraph;
+use mchprs_redpiler::{block_powered_mut, CompilerOptions};
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::{Block, ComparatorMode, Instrument};
 use mchprs_blocks::BlockPos;

@@ -1244,6 +1244,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "mchprs_backend"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "enum_dispatch",
+ "fpga",
+ "itertools 0.13.0",
+ "mchprs_blocks",
+ "mchprs_redpiler",
+ "mchprs_redstone",
+ "mchprs_world",
+ "petgraph",
+ "rustc-hash 2.0.0",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "tracing",
+]
+
+[[package]]
 name = "mchprs_blocks"
 version = "0.4.1"
 dependencies = [
@@ -1270,6 +1290,7 @@ dependencies = [
  "hmac",
  "impls",
  "itertools 0.13.0",
+ "mchprs_backend",
  "mchprs_blocks",
  "mchprs_network",
  "mchprs_proc_macros",
@@ -1322,6 +1343,7 @@ dependencies = [
 name = "mchprs_redpiler"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "enum_dispatch",
  "fpga",
  "itertools 0.13.0",
@@ -1329,8 +1351,8 @@ dependencies = [
  "mchprs_redstone",
  "mchprs_world",
  "petgraph",
- "redpiler_graph",
  "rustc-hash 2.0.0",
+ "serde",
  "serde_json",
  "smallvec",
  "tracing",
@@ -1899,14 +1921,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c82cf8cff14456045f55ec4241383baeff27af886adb72ffb2162f99911de0fd"
 dependencies = [
  "bitflags 2.6.0",
-]
-
-[[package]]
-name = "redpiler_graph"
-version = "0.4.1"
-dependencies = [
- "bincode",
- "serde",
 ]
 
 [[package]]

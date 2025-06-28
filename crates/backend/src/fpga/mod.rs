@@ -2,7 +2,7 @@ mod assembler;
 mod node;
 
 use super::JITBackend;
-use crate::compile_graph::{CompileGraph, NodeType};
+use mchprs_redpiler::compile_graph::{CompileGraph, NodeType};
 use crate::CompilerOptions;
 use fpga::compiler::DeviceConfig;
 use mchprs_blocks::blocks::Block;

@@ -6,6 +6,7 @@ use crate::utils::HyphenatedUUID;
 use crate::{permissions, utils};
 use backtrace::Backtrace;
 use bus::Bus;
+use fpga::scheduler::FPGAScheduler;
 use hmac::{Hmac, Mac};
 use mchprs_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
@@ -22,7 +23,6 @@ use mchprs_network::packets::serverbound::{
 use mchprs_network::packets::{PacketEncoderExt, PlayerProperty, SlotData, COMPRESSION_THRESHOLD};
 use mchprs_network::{NetworkServer, NetworkState, PlayerPacketSender};
 use mchprs_text::TextComponent;
-use fpga::RoC;
 use mchprs_utils::map;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -134,7 +134,7 @@ pub struct MinecraftServer {
     plot_sender: Sender<Message>,
     online_players: FxHashMap<u128, PlayerListEntry>,
     running_plots: Vec<PlotListEntry>,
-    fpgas: Arc<Mutex<RoC>>,
+    roc: Arc<Mutex<FPGAScheduler>>,
     whitelist: Option<Vec<WhitelistEntry>>,
 }
 
@@ -190,7 +190,7 @@ impl MinecraftServer {
             plot_sender: plot_tx,
             online_players: FxHashMap::default(),
             running_plots: Vec::new(),
-            fpgas: Arc::new(Mutex::new(RoC::new())),
+            roc: Arc::new(Mutex::new(Default::default())),
             whitelist,
         };
 
@@ -205,7 +205,7 @@ impl MinecraftServer {
             spawn_rx,
             true,
             None,
-            Arc::clone(&server.fpgas),
+            Arc::clone(&server.roc),
         );
         server.running_plots.push(PlotListEntry {
             plot_x: 0,
@@ -291,7 +291,7 @@ impl MinecraftServer {
                 priv_rx,
                 false,
                 Some(player),
-                Arc::clone(&self.fpgas),
+                Arc::clone(&self.roc),
             );
             self.running_plots.push(PlotListEntry {
                 plot_x,

@@ -1,27 +1,10 @@
 mod serial;
+pub mod scheduler;
 pub mod interface;
 pub mod compiler;
 
 use interface::{DeviceStatus, Interface};
 use compiler::{DeviceConfig, CompilerStatus};
-
-pub struct FPGA {
-    pub interface: Option<Interface>,
-    pub config: Option<DeviceConfig>,
-    pub device_status: DeviceStatus,
-    pub compiler_status: CompilerStatus,
-    pub hold: u32,
-}
-
-pub struct RoC {
-    pub hardware: Vec<FPGA>,
-}
-
-impl RoC {
-    pub fn new() -> RoC {
-        RoC{ hardware: Vec::new()}
-    }
-}
 
 pub struct BinaryIterator {
     data: Vec<u8>,

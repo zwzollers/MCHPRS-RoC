@@ -179,7 +179,8 @@ impl Plot {
             "compile" | "c" => {
                 let start_time = Instant::now();
                 let args = args.join(" ");
-                let options = CompilerOptions::parse(&args);
+                let mut options = CompilerOptions::parse(&args);
+                options.backend_variant = BackendVariant::Direct;
 
                 if options.optimize {
                     let msg = "Redpiler optimization is highly unstable and can break builds. Use with caution!";
@@ -188,7 +189,7 @@ impl Plot {
                 }
 
                 self.reset_backend();
-                self.start_backend(BackendVariant::Direct, options, "Redpiler".to_string(), player);
+                self.start_backend(options, "Redpiler".to_string(), player);
 
                 debug!("Compile took {:?}", start_time.elapsed());
             }
@@ -224,20 +225,7 @@ impl Plot {
 
             }
             "config" => {
-                let fpga = &mut self.fpgas.lock().unwrap().hardware[0];
-                fpga.config = DeviceConfig::read_config(args[0]);
-                if let Some(config) = &fpga.config {
-                    // if config.create_project() {
-                    //     self.players[player].send_system_message("FPGA compiler project created!");
-                    // }
-                    // else {
-                    //     self.players[player].send_error_message("Error creating compiler project");
-                    // }
-
-                } 
-                else {
-                    self.players[player].send_error_message("Invalid config name");
-                }
+                self.scheduler.lock().unwrap().add(args[0], args[1], args[2]);
             }
             "start" => {
 
@@ -252,10 +240,19 @@ impl Plot {
             "compile" | "c" => {
                 let options = CompilerOptions::fpga();
                 self.reset_backend();
-                self.start_backend(BackendVariant::FPGA, options, args[0].to_string(), player);
+                self.start_backend(options, args[0].to_string(), player);
             }
             "run" | "r" => {
+                let mut data = self.backends.lock().unwrap();
+                let mut bkend_idx = 0;
 
+                for bkend in &mut *data {
+                    if bkend.name == args[0] {
+
+                        self.active_backend = Some(bkend_idx);
+                    }
+                    bkend_idx += 1;
+                }
             }
             "stop" => {
 

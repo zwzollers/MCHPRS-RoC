@@ -1,8 +1,6 @@
-use mchprs_blocks::{blocks::Block, BlockPos};
-use petgraph::graph::NodeIndex;
+use mchprs_blocks::blocks::Block;
 use petgraph::visit::EdgeRef;
-use redpiler_graph::NodeId;
-use crate::compile_graph::{CompileGraph, LinkType, NodeType};
+use mchprs_redpiler::compile_graph::{CompileGraph, LinkType, NodeType};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -40,7 +38,7 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                         get_inputs_str(graph, id, Some(LinkType::Default))));
                     output_count += 1;
                 }
-                NodeType::Repeater { delay, facing_diode } => {
+                NodeType::Repeater { delay, facing_diode: _ } => {
                     verilog.push_str(&format!("\twire w{};\n", id));
                     verilog.push_str(&format!("\trepeater #({}, 1'b{}, {}, {}) c{} (.i_clk(tick), .i_in({}), .i_lock({}), .o_out(w{}));\n",
                         delay,
@@ -60,7 +58,7 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                         get_inputs_str(graph, id, Some(LinkType::Default)),
                         id));
                 }
-                NodeType::Comparator { mode, far_input, facing_diode} => {
+                NodeType::Comparator { mode: _, far_input: _, facing_diode: _} => {
 
                 }
                 _ => ()

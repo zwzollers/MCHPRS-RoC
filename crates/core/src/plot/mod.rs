@@ -14,7 +14,7 @@ use crate::server::{BroadcastMessage, Message, PrivMessage};
 use crate::utils::HyphenatedUUID;
 use anyhow::Error;
 use bus::BusReader;
-use fpga::RoC;
+use fpga::scheduler::FPGAScheduler;
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::items::Item;
@@ -22,7 +22,8 @@ use mchprs_blocks::{BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::serverbound::SUseItemOn;
 use mchprs_network::PlayerPacketSender;
-use mchprs_redpiler::{BackendVariant, Backend, BackendMsg, CompilerOptions};
+use mchprs_backend::{Backend, BackendMsg};
+use mchprs_redpiler::{BackendVariant, CompilerOptions};
 use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
 use mchprs_text::TextComponent;
 use mchprs_world::storage::Chunk;
@@ -100,7 +101,7 @@ pub struct Plot {
     scoreboard: Scoreboard,
 
     //fpga
-    fpgas: Arc<Mutex<RoC>>,
+    scheduler: Arc<Mutex<FPGAScheduler>>,
 }
 
 pub struct PlotWorld {
@@ -707,7 +708,7 @@ impl Plot {
         self.timings.reset_timings();
     }
 
-    fn start_backend(&mut self, ty: BackendVariant, options: CompilerOptions, name: String, player: usize) {
+    fn start_backend(&mut self, options: CompilerOptions, name: String, player: usize) {
         debug!("Starting redpiler");
 
         let plr: &Player = &self.players[player];
@@ -1153,7 +1154,7 @@ impl Plot {
         tx: Sender<Message>,
         priv_rx: Receiver<PrivMessage>,
         always_running: bool,
-        fpgas: Arc<Mutex<RoC>>,
+        roc: Arc<Mutex<FPGAScheduler>>,
     ) -> Plot {
         let chunk_x_offset = x << PLOT_SCALE;
         let chunk_z_offset = z << PLOT_SCALE;
@@ -1209,7 +1210,7 @@ impl Plot {
             async_rt: Plot::create_async_rt(),
             scoreboard: Scoreboard::new(),
             world:Arc::new(Mutex::new(world)),
-            fpgas: fpgas, 
+            scheduler: roc, 
         }
 
     }
@@ -1221,12 +1222,12 @@ impl Plot {
         tx: Sender<Message>,
         priv_rx: Receiver<PrivMessage>,
         always_running: bool,
-        fpgas: Arc<Mutex<RoC>>,
+        roc: Arc<Mutex<FPGAScheduler>>,
     ) -> Result<Plot, (Error, Sender<Message>)> {
         let plot_path = format!("./world/plots/p{},{}", x, z);
         Ok(if Path::new(&plot_path).exists() {
             match data::load_plot(plot_path) {
-                Ok(data) => Plot::from_data(data, x, z, rx, tx, priv_rx, always_running, fpgas),
+                Ok(data) => Plot::from_data(data, x, z, rx, tx, priv_rx, always_running, roc),
                 Err(err) => {
                     return Result::Err((
                         err.context(format!("error loading plot {},{}", x, z)),
@@ -1235,7 +1236,7 @@ impl Plot {
                 }
             }
         } else {
-            Plot::from_data(data::empty_plot(), x, z, rx, tx, priv_rx, always_running, fpgas)
+            Plot::from_data(data::empty_plot(), x, z, rx, tx, priv_rx, always_running, roc)
         })
     }
 
@@ -1308,12 +1309,12 @@ impl Plot {
         priv_rx: Receiver<PrivMessage>,
         always_running: bool,
         initial_player: Option<Player>,
-        fpgas: Arc<Mutex<RoC>>,
+        roc: Arc<Mutex<FPGAScheduler>>,
     ) {
         thread::Builder::new()
             .name(format!("p{},{}", x, z))
             .spawn(
-                move || match Plot::load(x, z, rx, tx, priv_rx, always_running, fpgas) {
+                move || match Plot::load(x, z, rx, tx, priv_rx, always_running, roc) {
                     Ok(mut plot) => plot.run(initial_player),
                     Err((err, tx)) => {
                         if let Some(mut player) = initial_player {

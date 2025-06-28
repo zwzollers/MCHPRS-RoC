@@ -6,7 +6,7 @@ use mchprs_blocks::blocks::ComparatorMode as CComparatorMode;
 use mchprs_world::World;
 use petgraph::visit::EdgeRef;
 use petgraph::Direction;
-use redpiler_graph::{
+use crate::redpiler_graph::{
     serialize, BlockPos, ComparatorMode, Link, LinkType, Node, NodeState, NodeType,
 };
 use rustc_hash::FxHashMap;

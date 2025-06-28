@@ -50,4 +50,5 @@ mchprs_network = { path = "../network" }
 mchprs_text = { path = "../text" }
 mchprs_redpiler = { path = "../redpiler" }
 mchprs_redstone = { path = "../redstone" }
+mchprs_backend = { path = "../backend" }
 fpga = { path = "../fpga" }

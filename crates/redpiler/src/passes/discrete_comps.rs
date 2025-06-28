@@ -7,7 +7,7 @@ use petgraph::adj::EdgeReference;
 use petgraph::data::Build;
 use petgraph::visit::{EdgeFiltered, EdgeIndexable, EdgeRef, IntoEdgesDirected, NodeIndexable};
 use petgraph::Direction;
-use redpiler_graph::Link;
+use crate::redpiler_graph::Link;
 
 pub struct DiscreteComparators;
 
