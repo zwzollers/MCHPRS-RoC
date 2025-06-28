@@ -4,26 +4,22 @@ use std::io::prelude::*;
 use std::env;
 use std::os::windows::process::CommandExt;
 use std::path::Path;
-use std::process::{Command, Stdio};
-use std::io::{BufRead, BufReader, Error, ErrorKind};
+use std::process::Command;
 use serde_json;
 use serde;
 
 
-#[derive(serde::Deserialize, Debug)]
-
+#[derive(serde::Deserialize, Debug, Clone, Default)]
 pub struct DeviceConfig {
     pub name:           String,
     pub device:         String,
     pub family:         String,
-    pub compiler:       String,
-    pub version:        String,
-    pub logic_elements: u32,
-    pub system_clk:     u32,
+    pub command_com:    String,
+    pub program_com:    String,
     pub pin_assignments:PinAssignments
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone, Default)]
 pub struct PinAssignments {
     i_clk:          String,
     i_rx:           String,
@@ -34,17 +30,6 @@ pub struct PinAssignments {
 }
 
 impl DeviceConfig {
-    pub fn read_config(name: &str) -> Option<DeviceConfig> {
-        let config_str = fs::read_to_string("FPGA/config/devices.json").unwrap();
-        let configs: Vec<DeviceConfig> = serde_json::from_str(&config_str).unwrap();
-
-        for config in configs {
-            if config.name == name {
-                return Some(config);
-            }
-        }
-        None
-    }   
     pub fn create_project(&self, path: &Path, output_cnt: u32, input_cnt: u32) -> bool {
 
         let mut tcl = format!(
@@ -53,7 +38,7 @@ project_new -overwrite -revision RoC RoC
 set_global_assignment -name FAMILY \"{family}\"
 set_global_assignment -name DEVICE {device}
 set_global_assignment -name TOP_LEVEL_ENTITY top
-set_global_assignment -name ORIGINAL_QUARTUS_VERSION {version}STD.1
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 23.1STD.1
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../../src/top.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../../src/interface/uart.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../../src/interface/clk_div.sv
@@ -71,7 +56,6 @@ set_location_assignment PIN_{o_tx} -to o_TX
 set_location_assignment PIN_{i_clk} -to i_clk\n",
         device = self.device,
         family = self.family,
-        version = self.version,
         output_cnt = output_cnt,
         input_cnt = input_cnt,
         i_rx = self.pin_assignments.i_rx,
@@ -123,10 +107,10 @@ set_location_assignment PIN_{i_clk} -to i_clk\n",
         results
     }
 
-    pub fn program (&self) -> ProgramResults {
+    pub fn program (&self, path: &Path) -> ProgramResults {
         let results = ProgramResults{};
         let out = Command::new("cmd")
-            .current_dir("FPGA/prj")
+            .current_dir(path)
             .arg("/C")
             .raw_arg(r#"C:\intelFPGA_lite\23.1std\quartus\bin64\quartus_pgm -c "DE-SoC [USB-1]" -m jtag -o "p;RoC.sof@2""#)
             .output()

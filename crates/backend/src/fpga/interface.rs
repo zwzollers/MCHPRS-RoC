@@ -1,4 +1,6 @@
-use crate::serial::SerialConnection;
+use std::time::Duration;
+use serialport::SerialPort;
+
 
 
 pub enum FPGACommand {
@@ -83,7 +85,7 @@ impl Interface {
         //println!("RET: {response:?}");
 
         if response != bytes {
-            println!("CMD doesnt match");
+            //println!("CMD doesnt match");
             return false;
         }
 
@@ -92,6 +94,82 @@ impl Interface {
                 self.serial_conn.read(&mut self.outputs),                      
             _ => false
         }        
+    }
+}
+
+
+pub struct BinaryIterator {
+    data: Vec<u8>,
+    index: usize,
+}
+
+impl BinaryIterator {
+    pub fn new (buffer: Vec<u8>) -> BinaryIterator {
+        BinaryIterator{ 
+            data: (buffer),
+            index: (0) 
+        }
+    }
+
+    pub fn next (&mut self, size: u8) -> Option<u8> {
+        
+        let len = self.data.len() * 8;
+        let res = if self.index + size as usize > len {
+            None
+        } else {
+            Some((self.data[self.index/8] >> (self.index % 8)) & 0x01)
+        };
+
+        self.index += size as usize;
+        res
+    }
+}
+
+
+#[derive(Default, Debug)]
+pub struct SerialConnection {
+    port_name: String,
+    baud_rate: u32,
+    timeout: u32,
+    conn: Option<Box<dyn SerialPort>>,
+
+}
+
+impl SerialConnection {
+    pub fn new (name: &str, baud: u32, timeout: u32) -> SerialConnection {
+        SerialConnection{port_name: name.to_string(), baud_rate: baud, timeout: timeout, conn: None}
+    }
+
+    pub fn start (&mut self) -> bool{
+        self.conn = serialport::new(&self.port_name, self.baud_rate)
+            .timeout(Duration::from_millis(self.timeout as u64))
+            .parity(serialport::Parity::None)
+            .data_bits(serialport::DataBits::Eight)
+            .stop_bits(serialport::StopBits::One)
+            .open()
+            .ok();
+
+        !self.conn.is_none()
+    }
+
+    pub fn stop (&mut self) {
+        drop(self.conn.as_mut().unwrap())
+    }
+
+    pub fn read (&mut self, buffer: &mut Vec<u8>) -> bool {
+        self.conn.as_mut().unwrap().read_exact(buffer).is_ok()
+    }
+
+    pub fn clear_buffer (&mut self) -> bool {
+        self.conn.as_mut().unwrap().clear(serialport::ClearBuffer::Input).is_ok()
+    }
+
+    pub fn write (&mut self, data: &Vec<u8>) -> bool {
+        self.conn.as_mut().unwrap().write(data).is_ok()
+    }
+
+    pub fn write_byte (&mut self, data: u8) -> bool {
+        self.conn.as_mut().unwrap().write(&vec![data]).is_ok()
     }
 }
 
@@ -116,4 +194,3 @@ impl DeviceStatus {
         }
     }
 }
-

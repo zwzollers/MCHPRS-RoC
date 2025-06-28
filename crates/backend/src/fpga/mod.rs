@@ -1,10 +1,12 @@
 mod assembler;
 mod node;
+pub mod interface;
+pub mod compiler;
 
 use super::JITBackend;
 use mchprs_redpiler::compile_graph::{CompileGraph, NodeType};
 use crate::CompilerOptions;
-use fpga::compiler::DeviceConfig;
+use compiler::DeviceConfig;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::BlockPos;
 use mchprs_world::World;
@@ -13,14 +15,15 @@ use node::{FPGAInputs, FPGAOutputs};
 use std::path::Path;
 
 
-use fpga::interface::{Interface, FPGACommand};
-use fpga::BinaryIterator;
+use interface::{Interface, FPGACommand, BinaryIterator};
 
 use std::fs::{remove_dir_all, copy};
 
 #[derive(Default, Debug)]
 pub struct FPGABackend {
     fpga: Interface,
+    path: String,
+    config: DeviceConfig,
     outputs: FPGAOutputs,
     inputs: FPGAInputs,
 }
@@ -58,8 +61,11 @@ impl JITBackend for FPGABackend {
         graph: CompileGraph,
         _ticks: Vec<TickEntry>,
         path: String,
-        options: &CompilerOptions,
+        config: Option<DeviceConfig>,
+        _options: &CompilerOptions,
     ) {
+        self.config = config.unwrap();
+        self.path = path;
         for nodeid in graph.node_indices() {
             let node = &graph[nodeid];
             if let Some((pos, blockid)) = node.block {
@@ -75,25 +81,23 @@ impl JITBackend for FPGABackend {
             }
         }
         println!("generating");
-        assembler::generate_verilog(&graph, Path::new(&format!("FPGA/bin/{path}/redstone.sv")));
-        println!("config");
-        let config = DeviceConfig::read_config("DE1-SoC").unwrap();
+        assembler::generate_verilog(&graph, Path::new(&format!("FPGA/bin/{}/redstone.sv", self.path)));
         println!("create_project");
-        config.create_project(Path::new(&format!("FPGA/bin/{path}/prj/prj.tcl")), self.outputs.bits as u32, self.inputs.num_inputs);
+        self.config.create_project(Path::new(&format!("FPGA/bin/{}/prj/prj.tcl",self.path)), self.outputs.bits as u32, self.inputs.num_inputs);
         println!("compile");
-        config.compile(Path::new(&format!("FPGA/bin/{path}/prj")));
+        self.config.compile(Path::new(&format!("FPGA/bin/{}/prj", self.path)));
         println!("done");
-        _ = copy(Path::new(&format!("FPGA/bin/{path}/prj/RoC.sof")), Path::new(&format!("FPGA/bin/{path}/RoC.sof")));
-        _ = remove_dir_all(Path::new(&format!("FPGA/bin/{path}/prj")));
+        _ = copy(Path::new(&format!("FPGA/bin/{}/prj/RoC.sof", self.path)), Path::new(&format!("FPGA/bin/{}/RoC.sof", self.path)));
+        _ = remove_dir_all(Path::new(&format!("FPGA/bin/{}/prj", self.path)));  
+    }
 
-        // let parameters = format!("parameter\n\tROC_INPUTS={},\n\tROC_OUTPUTS={};", self.inputs.num_inputs, self.outputs.bits).to_owned();
-
-        // let mut file = File::create(&format!("FPGA/bin/{path}/parameters.sv")).unwrap();
-        // match file.write_all(parameters.as_bytes()) {
-        //     Err(..) => println!("    Error Writing to file"),
-        //     _ => ()
-        // }
-        
+    fn run(&mut self) {
+        println!("programming");
+        self.config.program(Path::new(&format!("FPGA/bin/{}", self.path)));
+        println!("serial start");
+        self.fpga.outputs = vec![0; self.outputs.get_num_bytes()];
+        self.fpga.serial_start(&self.config.command_com, 2500000);
+        self.set_rtps(10);
     }
 
     fn set_rtps(&mut self, rtps: u32) {

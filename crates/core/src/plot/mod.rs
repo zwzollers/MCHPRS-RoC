@@ -113,6 +113,10 @@ pub struct PlotWorld {
 }
 
 impl PlotWorld {
+    fn get_plot (&self) -> (i32,i32) {
+        (self.x, self.z)
+    }
+
     fn get_chunk_index_for_chunk(&self, chunk_x: i32, chunk_z: i32) -> usize {
         let local_x = chunk_x - self.x * PLOT_WIDTH;
         let local_z = chunk_z - self.z * PLOT_WIDTH;
@@ -722,6 +726,12 @@ impl Plot {
             } else {
                 self.world.lock().unwrap().get_corners()
             }.clone(); 
+        let config = if options.backend_variant == BackendVariant::FPGA {
+                Some(self.scheduler.lock().unwrap().get_config())
+            }
+            else {
+                None
+            };
         let ticks = { self.world.lock().unwrap().to_be_ticked.drain(..).collect() };
         let world = Arc::clone(&self.world);
         let backends: Arc<Mutex<Vec<Backend>>> = Arc::clone(&self.backends);
@@ -736,6 +746,7 @@ impl Plot {
                 sender,
                 name,
                 format!("{}-{}", x, z),
+                config,
                 &world,
                 bounds,  
                 options,
@@ -1154,7 +1165,7 @@ impl Plot {
         tx: Sender<Message>,
         priv_rx: Receiver<PrivMessage>,
         always_running: bool,
-        roc: Arc<Mutex<FPGAScheduler>>,
+        fpga_scheduler: Arc<Mutex<FPGAScheduler>>,
     ) -> Plot {
         let chunk_x_offset = x << PLOT_SCALE;
         let chunk_z_offset = z << PLOT_SCALE;
@@ -1210,7 +1221,7 @@ impl Plot {
             async_rt: Plot::create_async_rt(),
             scoreboard: Scoreboard::new(),
             world:Arc::new(Mutex::new(world)),
-            scheduler: roc, 
+            scheduler: fpga_scheduler, 
         }
 
     }
@@ -1222,12 +1233,12 @@ impl Plot {
         tx: Sender<Message>,
         priv_rx: Receiver<PrivMessage>,
         always_running: bool,
-        roc: Arc<Mutex<FPGAScheduler>>,
+        fpga_scheduler: Arc<Mutex<FPGAScheduler>>,
     ) -> Result<Plot, (Error, Sender<Message>)> {
         let plot_path = format!("./world/plots/p{},{}", x, z);
         Ok(if Path::new(&plot_path).exists() {
             match data::load_plot(plot_path) {
-                Ok(data) => Plot::from_data(data, x, z, rx, tx, priv_rx, always_running, roc),
+                Ok(data) => Plot::from_data(data, x, z, rx, tx, priv_rx, always_running, fpga_scheduler),
                 Err(err) => {
                     return Result::Err((
                         err.context(format!("error loading plot {},{}", x, z)),
@@ -1236,7 +1247,7 @@ impl Plot {
                 }
             }
         } else {
-            Plot::from_data(data::empty_plot(), x, z, rx, tx, priv_rx, always_running, roc)
+            Plot::from_data(data::empty_plot(), x, z, rx, tx, priv_rx, always_running, fpga_scheduler)
         })
     }
 
@@ -1309,12 +1320,12 @@ impl Plot {
         priv_rx: Receiver<PrivMessage>,
         always_running: bool,
         initial_player: Option<Player>,
-        roc: Arc<Mutex<FPGAScheduler>>,
+        fpga_scheduler: Arc<Mutex<FPGAScheduler>>,
     ) {
         thread::Builder::new()
             .name(format!("p{},{}", x, z))
             .spawn(
-                move || match Plot::load(x, z, rx, tx, priv_rx, always_running, roc) {
+                move || match Plot::load(x, z, rx, tx, priv_rx, always_running, fpga_scheduler) {
                     Ok(mut plot) => plot.run(initial_player),
                     Err((err, tx)) => {
                         if let Some(mut player) = initial_player {

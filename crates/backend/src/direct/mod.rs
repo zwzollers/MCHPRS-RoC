@@ -5,6 +5,8 @@ mod node;
 mod tick;
 mod update;
 
+use crate::fpga::compiler::DeviceConfig;
+
 use super::JITBackend;
 use mchprs_redpiler::compile_graph::CompileGraph;
 use mchprs_redpiler::{block_powered_mut, CompilerOptions};
@@ -279,6 +281,7 @@ impl JITBackend for DirectBackend {
         graph: CompileGraph,
         ticks: Vec<TickEntry>,
         _name: String,
+        _config: Option<DeviceConfig>,
         options: &CompilerOptions,
     ) {
         compile::compile(self, graph, ticks, options);
@@ -289,6 +292,7 @@ impl JITBackend for DirectBackend {
     }
 
     fn set_rtps(&mut self, _rtps: u32) { }
+    fn run(&mut self) { }
 }
 
 /// Set node for use in `update`. None of the nodes here have usable output power,

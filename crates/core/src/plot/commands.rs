@@ -3,7 +3,6 @@ use crate::player::{Gamemode, PacketSender, PlayerPos};
 use crate::plot::data::sleep_time_for_tps;
 use crate::profile::PlayerProfile;
 use crate::server::Message;
-use fpga::interface::DeviceStatus;
 use mchprs_blocks::items::ItemStack;
 use mchprs_network::packets::clientbound::{
     CCommands, CCommandsNode as Node, CDeclareCommandsNodeParser as Parser, ClientBoundPacket,
@@ -13,7 +12,6 @@ use mchprs_network::PlayerPacketSender;
 use mchprs_redpiler::{BackendVariant, CompilerOptions};
 use mchprs_save_data::plot_data::{Tps, WorldSendRate};
 use mchprs_text::TextComponent;
-use fpga::compiler::DeviceConfig;
 use once_cell::sync::Lazy;
 use std::ops::Add;
 use std::str::FromStr;
@@ -221,11 +219,8 @@ impl Plot {
     /// Handles a command that starts with `/fpga`
     fn handle_fpga_command(&mut self, player: usize, command: &str, args: &[&str]) {
         match command {
-            "reset" => {
+            "stop" => {
 
-            }
-            "config" => {
-                self.scheduler.lock().unwrap().add(args[0], args[1], args[2]);
             }
             "start" => {
 
@@ -243,19 +238,23 @@ impl Plot {
                 self.start_backend(options, args[0].to_string(), player);
             }
             "run" | "r" => {
-                let mut data = self.backends.lock().unwrap();
+                let mut backends = self.backends.lock().unwrap();
                 let mut bkend_idx = 0;
 
-                for bkend in &mut *data {
-                    if bkend.name == args[0] {
-
-                        self.active_backend = Some(bkend_idx);
+                if self.scheduler.lock().unwrap().lock(self.world.lock().unwrap().get_plot()) {
+                    for bkend in &mut *backends {
+                        if bkend.name == args[0] {
+                            break;
+                        }
+                        bkend_idx += 1;
                     }
-                    bkend_idx += 1;
+                    backends[bkend_idx].run();
+                    self.active_backend = Some(bkend_idx);
                 }
+                
             }
             "stop" => {
-
+                self.scheduler.lock().unwrap().free(self.world.lock().unwrap().get_plot());
             }
             _ => self.players[player].send_error_message("Invalid argument for /fpga"),
         }

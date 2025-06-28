@@ -662,9 +662,9 @@ dependencies = [
 name = "fpga"
 version = "0.1.0"
 dependencies = [
+ "mchprs_backend",
  "serde",
  "serde_json",
- "serialport",
 ]
 
 [[package]]
@@ -1249,7 +1249,6 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "enum_dispatch",
- "fpga",
  "itertools 0.13.0",
  "mchprs_blocks",
  "mchprs_redpiler",
@@ -1259,6 +1258,7 @@ dependencies = [
  "rustc-hash 2.0.0",
  "serde",
  "serde_json",
+ "serialport",
  "smallvec",
  "tracing",
 ]
@@ -1345,7 +1345,6 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "enum_dispatch",
- "fpga",
  "itertools 0.13.0",
  "mchprs_blocks",
  "mchprs_redstone",

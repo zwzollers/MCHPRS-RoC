@@ -18,5 +18,4 @@ enum_dispatch = "0.3"
 mchprs_blocks = { path = "../blocks" }
 mchprs_world = { path = "../world" }
 mchprs_redstone = { path = "../redstone" }
-fpga = { path = "../fpga" }
 

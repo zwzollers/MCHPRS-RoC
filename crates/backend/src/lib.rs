@@ -27,7 +27,11 @@ pub trait JITBackend {
         graph: CompileGraph,
         ticks: Vec<TickEntry>,
         path: String,
+        config: Option<DeviceConfig>,
         options: &CompilerOptions,  
+    );
+    fn run(&mut self
+
     );
     fn tick(&mut self);
     fn tickn(&mut self, ticks: u64) {
@@ -46,6 +50,8 @@ pub trait JITBackend {
 
 use direct::DirectBackend;
 use fpga::FPGABackend;
+
+use crate::fpga::compiler::DeviceConfig;
 
 #[enum_dispatch(JITBackend)] 
 pub enum BackendDispatcher {
@@ -91,6 +97,7 @@ impl Backend {
         sender: Sender<BackendMsg>,
         name: String,
         plot: String,
+        config: Option<DeviceConfig>,
         world: &Mutex<W>,
         bounds: (BlockPos, BlockPos),
         options: CompilerOptions,
@@ -114,6 +121,7 @@ impl Backend {
             graph,
             ticks,
             format!("{plot}/{name}"),
+            config,
             &options);
 
         _ = sender.send(BackendMsg::BackendStatus { backend: name.clone(), status: BackendStatus::Ready });
@@ -147,11 +155,11 @@ impl Backend {
     }
 
     fn backend(&mut self) -> &mut BackendDispatcher {
-        assert!(
-            self.is_active,
-            "tried to get redpiler backend when inactive"
-        );
         &mut self.jit
+    }
+
+    pub fn run(&mut self) {
+        self.backend().run();
     }
 
     pub fn tick(&mut self) {

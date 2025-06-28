@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use fpga::BinaryIterator;
+use crate::fpga::interface::BinaryIterator;
 use mchprs_blocks::{blocks::{Block, ButtonFace, Lever, LeverFace, RedstoneWire, RedstoneWireSide, StoneButton, TrapdoorHalf}, BlockDirection, BlockPos};
 
 #[derive(Default, Debug)]

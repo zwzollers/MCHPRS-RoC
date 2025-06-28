@@ -134,7 +134,7 @@ pub struct MinecraftServer {
     plot_sender: Sender<Message>,
     online_players: FxHashMap<u128, PlayerListEntry>,
     running_plots: Vec<PlotListEntry>,
-    roc: Arc<Mutex<FPGAScheduler>>,
+    fpga_scheduler: Arc<Mutex<FPGAScheduler>>,
     whitelist: Option<Vec<WhitelistEntry>>,
 }
 
@@ -190,7 +190,7 @@ impl MinecraftServer {
             plot_sender: plot_tx,
             online_players: FxHashMap::default(),
             running_plots: Vec::new(),
-            roc: Arc::new(Mutex::new(Default::default())),
+            fpga_scheduler: Arc::new(Mutex::new(FPGAScheduler::load_from_config("FPGA/config/devices.json"))),
             whitelist,
         };
 
@@ -205,7 +205,7 @@ impl MinecraftServer {
             spawn_rx,
             true,
             None,
-            Arc::clone(&server.roc),
+            Arc::clone(&server.fpga_scheduler),
         );
         server.running_plots.push(PlotListEntry {
             plot_x: 0,
@@ -291,7 +291,7 @@ impl MinecraftServer {
                 priv_rx,
                 false,
                 Some(player),
-                Arc::clone(&self.roc),
+                Arc::clone(&self.fpga_scheduler),
             );
             self.running_plots.push(PlotListEntry {
                 plot_x,
