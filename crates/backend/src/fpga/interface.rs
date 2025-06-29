@@ -185,11 +185,11 @@ pub enum DeviceStatus {
 impl DeviceStatus {
     pub fn to_str(self) -> &'static str {
         match self {
-            DeviceStatus::Inactive => "§cInactive",
-            DeviceStatus::Programming => "§9Programming",
-            DeviceStatus::Connected => "§aConnected",
-            DeviceStatus::Disconnected => "§cDisconnected",
-            DeviceStatus::Failed => "§cStopped",
+            DeviceStatus::Inactive => "&cInactive",
+            DeviceStatus::Programming => "&9Programming",
+            DeviceStatus::Connected => "&aConnected",
+            DeviceStatus::Disconnected => "&cDisconnected",
+            DeviceStatus::Failed => "&cStopped",
         }
     }
 }
