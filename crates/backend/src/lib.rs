@@ -4,10 +4,13 @@ pub mod fpga;
 use mchprs_blocks::BlockPos;
 use mchprs_world::TickEntry;
 use mchprs_world::{for_each_block_mut_optimized, World};
+use std::fs;
+use std::path::Path;
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 use std::time::Instant;
 use tracing::debug;
+use fpga::linker::Linker;
 
 
 use mchprs_redpiler::{
@@ -18,6 +21,10 @@ use mchprs_redpiler::{
     BackendVariant,
 };
 use enum_dispatch::enum_dispatch;
+use direct::DirectBackend;
+use fpga::FPGABackend;
+
+use crate::fpga::compiler::DeviceConfig;
 
 
 #[enum_dispatch]
@@ -26,13 +33,13 @@ pub trait JITBackend {
         &mut self,
         graph: CompileGraph,
         ticks: Vec<TickEntry>,
-        path: String,
+        plot: String,
+        name: String,
         config: Option<DeviceConfig>,
         options: &CompilerOptions,  
     );
-    fn run(&mut self
-
-    );
+    fn run(&mut self);
+    fn stop(&mut self);
     fn tick(&mut self);
     fn tickn(&mut self, ticks: u64) {
         for _ in 0..ticks {
@@ -47,11 +54,6 @@ pub trait JITBackend {
     fn inspect(&mut self, pos: BlockPos);
     fn set_rtps(&mut self, rtps: u32);
 }
-
-use direct::DirectBackend;
-use fpga::FPGABackend;
-
-use crate::fpga::compiler::DeviceConfig;
 
 #[enum_dispatch(JITBackend)] 
 pub enum BackendDispatcher {
@@ -81,7 +83,9 @@ impl BackendStatus {
 }
 
 pub enum BackendMsg {
-    BackendStatus{backend: String, status: BackendStatus}
+    BackendStatus{backend: String, status: BackendStatus},
+    New{backend: String, options: CompilerOptions},
+    Delete{backend: String}
 }
 
 pub struct Backend {
@@ -93,6 +97,36 @@ pub struct Backend {
 }
 
 impl Backend {
+    pub fn from_data(plot: (i32,i32), sender: Sender<BackendMsg>, config: DeviceConfig) -> Vec<Backend> {
+        let mut backends: Vec<Backend> = Vec::new();
+        let path_str = format!("FPGA/bin/{}-{}",plot.0,plot.1);
+        let path = Path::new(&path_str);
+        if path.is_dir() {
+
+            for entry in fs::read_dir(path).unwrap() {
+                let link_path = entry.unwrap().path().join("link.json");
+                let links_str = fs::read_to_string(link_path).unwrap();
+                let link: Linker = serde_json::from_str(&links_str).unwrap();
+
+                let name = link.name.clone();
+
+                let backend = FPGABackend::from_link_file(link, format!("{}-{}/{}",plot.0,plot.1,name), config.clone());
+                let new_sender = sender.clone();
+                _ = new_sender.send(BackendMsg::New { backend: name.clone(), options: CompilerOptions::fpga() });
+                _ = new_sender.send(BackendMsg::BackendStatus { backend: name.clone(), status: BackendStatus::Ready });
+                backends.push(Backend { 
+                    is_active: false,
+                    sender: sender.clone(),
+                    name: name.clone(),
+                    jit: BackendDispatcher::FPGABackend(backend),
+                    options: CompilerOptions::fpga()  
+                });
+            }
+        }
+
+        backends
+    }
+
     pub fn new <W: World>(
         sender: Sender<BackendMsg>,
         name: String,
@@ -103,6 +137,9 @@ impl Backend {
         options: CompilerOptions,
         ticks: Vec<TickEntry>,
     ) -> Backend{
+
+        _ = sender.send(BackendMsg::New { backend: name.clone(), options: options.clone() });
+
         debug!("Starting compile");
         let start = Instant::now();
 
@@ -120,7 +157,8 @@ impl Backend {
         jit.compile(
             graph,
             ticks,
-            format!("{plot}/{name}"),
+            plot,
+            name.clone(),
             config,
             &options);
 
@@ -160,6 +198,12 @@ impl Backend {
 
     pub fn run(&mut self) {
         self.backend().run();
+        _ = self.sender.send(BackendMsg::BackendStatus { backend: self.name.clone(), status: BackendStatus::Active });
+    }
+
+    pub fn stop(&mut self) {
+        self.backend().stop();
+        _ = self.sender.send(BackendMsg::BackendStatus { backend: self.name.clone(), status: BackendStatus::Ready });
     }
 
     pub fn tick(&mut self) {

@@ -52,6 +52,13 @@ impl Scoreboard {
 
     pub fn parse_scoreboard_msg (&mut self, msg: BackendMsg) {
         match msg {
+            BackendMsg::New { backend, options} => {
+                self.add_backend(backend.clone(), options);
+                 self.backend_list.get_mut(&backend).unwrap().1 = BackendStatus::Redpiling;
+            }
+            BackendMsg::Delete { backend} => {
+                self.backend_list.remove(&backend);
+            }
             BackendMsg::BackendStatus { backend, status } => {
                 self.backend_list.get_mut(&backend).unwrap().1 = status;
             }

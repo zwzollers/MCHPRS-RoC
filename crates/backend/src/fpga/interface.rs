@@ -74,15 +74,10 @@ impl Interface {
             FPGACommand::FailAck =>                              
                 vec![0xC8,0,0,0,0,0xA5],
         };
-
-        //println!("CMD: {bytes:?}");
-
         self.serial_conn.write(&bytes);
 
         let mut response: Vec<u8> = vec![0; 6];
         self.serial_conn.read(&mut response); 
-
-        //println!("RET: {response:?}");
 
         if response != bytes {
             //println!("CMD doesnt match");
@@ -95,11 +90,15 @@ impl Interface {
             _ => false
         }        
     }
+
+    pub fn stop(&mut self) {
+        self.serial_conn.stop();
+    }
 }
 
 
 pub struct BinaryIterator {
-    data: Vec<u8>,
+    pub data: Vec<u8>,
     index: usize,
 }
 

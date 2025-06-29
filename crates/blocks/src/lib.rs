@@ -216,7 +216,7 @@ impl BlockProperty for BlockColorVariant {
     fn decode(&mut self, _props: &HashMap<&str, &str>, _name: &str) {}
 }
 
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BlockDirection {
     North,
     South,

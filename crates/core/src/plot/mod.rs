@@ -739,8 +739,6 @@ impl Plot {
         let x = { self.world.lock().unwrap().x };
         let z = { self.world.lock().unwrap().z };
 
-        self.scoreboard.add_backend(name.clone(), options.clone());
-
         thread::spawn(move || {
             let new_backend: Backend = Backend::new(
                 sender,
@@ -1195,6 +1193,7 @@ impl Plot {
         let tps = plot_data.tps;
         let world_send_rate = plot_data.world_send_rate;
         let (back_tx, back_rx) = mpsc::channel();
+        let backends = Backend::from_data((x,z), back_tx.clone(), fpga_scheduler.lock().unwrap().get_config());
         Plot {
             last_player_time: Instant::now(),
             last_update_time: Instant::now(),
@@ -1212,7 +1211,7 @@ impl Plot {
             tps,
             world_send_rate,
             always_running,
-            backends: Arc::new(Mutex::new(Vec::new())),
+            backends: Arc::new(Mutex::new(backends)),
             active_backend: None,
             backend_rx: back_rx,
             backend_tx: back_tx,

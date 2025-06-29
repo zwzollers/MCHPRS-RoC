@@ -1,17 +1,17 @@
 mod assembler;
-mod node;
+pub mod linker;
 pub mod interface;
 pub mod compiler;
 
 use super::JITBackend;
 use mchprs_redpiler::compile_graph::{CompileGraph, NodeType};
+use crate::fpga::linker::Linker;
 use crate::CompilerOptions;
 use compiler::DeviceConfig;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::BlockPos;
 use mchprs_world::World;
 use mchprs_world::TickEntry;
-use node::{FPGAInputs, FPGAOutputs};
 use std::path::Path;
 
 
@@ -24,8 +24,7 @@ pub struct FPGABackend {
     fpga: Interface,
     path: String,
     config: DeviceConfig,
-    outputs: FPGAOutputs,
-    inputs: FPGAInputs,
+    pub link: Linker,
 }
 
 impl JITBackend for FPGABackend {
@@ -34,10 +33,8 @@ impl JITBackend for FPGABackend {
     fn reset<W: World>(&mut self, _world: &mut W, _io_only: bool) {}
 
     fn on_use_block(&mut self, pos: BlockPos) {
-        if let Some(input) = self.inputs.get_mut(pos) {
-            input.set_state(!input.state);
-            self.fpga.send_command(FPGACommand::SetInputs(input.id, 0, input.state));
-        }  
+        let (id, ty, state) = self.link.toggle_input(pos); 
+        self.fpga.send_command(FPGACommand::SetInputs(id, ty, state));
     }
 
     fn set_pressure_plate(&mut self, _pos: BlockPos, _powered: bool) {}
@@ -48,10 +45,7 @@ impl JITBackend for FPGABackend {
         self.fpga.send_command(FPGACommand::Capture);
         self.fpga.send_command(FPGACommand::GetOutupts);
         let mut output_iter: BinaryIterator = BinaryIterator::new(self.fpga.outputs.clone());
-        for (pos, block) in self.outputs.get_blocks_to_change(&mut output_iter) {
-            world.set_block(pos, block);
-        }
-        for (pos, block) in self.inputs.get_blocks_to_change() {
+        for (pos, block) in self.link.get_blocks_to_change(&mut output_iter) {
             world.set_block(pos, block);
         }
     }
@@ -60,30 +54,28 @@ impl JITBackend for FPGABackend {
         &mut self,
         graph: CompileGraph,
         _ticks: Vec<TickEntry>,
-        path: String,
+        plot: String,
+        name: String,
         config: Option<DeviceConfig>,
         _options: &CompilerOptions,
     ) {
+        let path = format!("{}/{}", plot, name);
+        self.link.name = name;
         self.config = config.unwrap();
         self.path = path;
         for nodeid in graph.node_indices() {
             let node = &graph[nodeid];
             if let Some((pos, blockid)) = node.block {
                 let block = Block::from_id(blockid);
-                match node.ty
-                {
-                    NodeType::Lamp | NodeType::Trapdoor => 
-                        self.outputs.add(block, pos),
-                    NodeType::Lever | NodeType::Button | NodeType::PressurePlate => 
-                        self.inputs.add(block, pos),
-                    _ => ()
-                }
+                self.link.add_block(block, pos);
             }
         }
-        println!("generating");
+        println!("generating link file");
+        self.link.generate_link_file(Path::new(&format!("FPGA/bin/{}/link.json", self.path)));
+        println!("generating veruilog");
         assembler::generate_verilog(&graph, Path::new(&format!("FPGA/bin/{}/redstone.sv", self.path)));
         println!("create_project");
-        self.config.create_project(Path::new(&format!("FPGA/bin/{}/prj/prj.tcl",self.path)), self.outputs.bits as u32, self.inputs.num_inputs);
+        self.config.create_project(Path::new(&format!("FPGA/bin/{}/prj/prj.tcl",self.path)), self.link.output_bits as u32, self.link.input_bits);
         println!("compile");
         self.config.compile(Path::new(&format!("FPGA/bin/{}/prj", self.path)));
         println!("done");
@@ -95,9 +87,14 @@ impl JITBackend for FPGABackend {
         println!("programming");
         self.config.program(Path::new(&format!("FPGA/bin/{}", self.path)));
         println!("serial start");
-        self.fpga.outputs = vec![0; self.outputs.get_num_bytes()];
+        println!("{}", self.link.get_output_bytes());
+        self.fpga.outputs = vec![0; self.link.get_output_bytes()];
         self.fpga.serial_start(&self.config.command_com, 2500000);
         self.set_rtps(10);
+    }
+
+    fn stop(&mut self) {
+        self.fpga = Default::default();
     }
 
     fn set_rtps(&mut self, rtps: u32) {

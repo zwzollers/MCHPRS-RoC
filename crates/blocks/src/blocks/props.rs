@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use super::{Block, BlockDirection, BlockProperty, BlockTransform, FlipDirection};
 use std::str::FromStr;
 
@@ -105,7 +107,7 @@ impl RedstoneComparator {
     }
 }
 
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LeverFace {
     Floor,
     #[default]
@@ -172,7 +174,7 @@ impl Lever {
     }
 }
 
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ButtonFace {
     Floor,
     #[default]
@@ -349,7 +351,7 @@ impl BlockTransform for RedstoneWire {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum TrapdoorHalf {
     #[default]
     Top,

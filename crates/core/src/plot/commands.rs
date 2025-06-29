@@ -239,22 +239,43 @@ impl Plot {
             }
             "run" | "r" => {
                 let mut backends = self.backends.lock().unwrap();
-                let mut bkend_idx = 0;
+                let mut i = 0;
+
+                if !self.active_backend.is_none() {
+                    backends[self.active_backend.unwrap()].stop();
+                    self.active_backend = None;
+                    self.scheduler.lock().unwrap().free(self.world.lock().unwrap().get_plot());
+                }
 
                 if self.scheduler.lock().unwrap().lock(self.world.lock().unwrap().get_plot()) {
-                    for bkend in &mut *backends {
-                        if bkend.name == args[0] {
+                    for backend in &mut *backends {
+                        if backend.name == args[0] {
                             break;
                         }
-                        bkend_idx += 1;
+                        i += 1;
                     }
-                    backends[bkend_idx].run();
-                    self.active_backend = Some(bkend_idx);
+                    if i < backends.len() {
+                        backends[i].run();
+                        self.active_backend = Some(i);
+                    }
+                    else {
+                        self.players[player].send_error_message("Invalid Build Name");
+                    }
+                    
+                }
+                else {
+                    self.players[player].send_error_message("No Active FPGAs");
                 }
                 
             }
             "stop" => {
-                self.scheduler.lock().unwrap().free(self.world.lock().unwrap().get_plot());
+                let mut backends = self.backends.lock().unwrap();
+
+                if !self.active_backend.is_none() {
+                    backends[self.active_backend.unwrap()].stop();
+                    self.active_backend = None;
+                    self.scheduler.lock().unwrap().free(self.world.lock().unwrap().get_plot());
+                }
             }
             _ => self.players[player].send_error_message("Invalid argument for /fpga"),
         }

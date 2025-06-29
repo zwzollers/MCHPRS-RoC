@@ -280,6 +280,7 @@ impl JITBackend for DirectBackend {
         &mut self,
         graph: CompileGraph,
         ticks: Vec<TickEntry>,
+        _plot: String,
         _name: String,
         _config: Option<DeviceConfig>,
         options: &CompilerOptions,
@@ -293,6 +294,7 @@ impl JITBackend for DirectBackend {
 
     fn set_rtps(&mut self, _rtps: u32) { }
     fn run(&mut self) { }
+    fn stop(&mut self) { }
 }
 
 /// Set node for use in `update`. None of the nodes here have usable output power,
