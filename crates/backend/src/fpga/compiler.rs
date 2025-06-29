@@ -142,10 +142,10 @@ pub enum CompilerStatus {
 impl CompilerStatus {
     pub fn to_str(self) -> &'static str {
         match self {
-            CompilerStatus::Idle => "§aIdle",
-            CompilerStatus::Compiling => "§eCompiling",
-            CompilerStatus::Programming => "§9Programming",
-            CompilerStatus::Failed => "§cStopped",
+            CompilerStatus::Idle => "&aIdle",
+            CompilerStatus::Compiling => "&eCompiling",
+            CompilerStatus::Programming => "&9Programming",
+            CompilerStatus::Failed => "&cStopped",
         }
     }
 }

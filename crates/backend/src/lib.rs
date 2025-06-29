@@ -73,11 +73,11 @@ pub enum BackendStatus {
 impl BackendStatus {
     pub fn to_str(&self) -> String {
         match self {
-            BackendStatus::Stopped =>   "§c  Stopped".to_string(),
-            BackendStatus::Redpiling => "§eRedpiling".to_string(),
-            BackendStatus::Compiling => "§eCompiling".to_string(),
-            BackendStatus::Ready =>     "§2    Ready".to_string(),
-            BackendStatus::Active =>    "§a   Active".to_string(),
+            BackendStatus::Stopped =>   "&c  Stopped".to_string(),
+            BackendStatus::Redpiling => "&eRedpiling".to_string(),
+            BackendStatus::Compiling => "&eCompiling".to_string(),
+            BackendStatus::Ready =>     "&2    Ready".to_string(),
+            BackendStatus::Active =>    "&a   Active".to_string(),
         }
     }
 }

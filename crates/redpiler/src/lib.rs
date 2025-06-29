@@ -102,22 +102,22 @@ impl CompilerOptions {
         let mut flags = Vec::new();
         let backend = self.backend_variant;
         if self.optimize && backend == BackendVariant::Direct{
-            flags.push("    §3- optimize".to_string());
+            flags.push("    &3- optimize".to_string());
         }
         if self.export && backend == BackendVariant::Direct{
-            flags.push("    §3- export".to_string());
+            flags.push("    &3- export".to_string());
         }
         if self.io_only && backend == BackendVariant::Direct{
-            flags.push("    §3- io only".to_string());
+            flags.push("    &3- io only".to_string());
         }
         if self.update && backend == BackendVariant::Direct{
-            flags.push("    §3- update".to_string());
+            flags.push("    &3- update".to_string());
         }
         if self.wire_dot_out && backend == BackendVariant::Direct{
-            flags.push("    §3- wire dot out".to_string());
+            flags.push("    &3- wire dot out".to_string());
         }
         if self.selection && backend == BackendVariant::Direct{
-            flags.push("    §3- selection only".to_string());
+            flags.push("    &3- selection only".to_string());
         }
         flags
     }
