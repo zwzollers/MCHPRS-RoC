@@ -130,26 +130,6 @@ pub struct ProgramResults {
 
 }
 
-#[derive(Default, Clone, Copy)]
-pub enum CompilerStatus {
-    #[default]
-    Idle,
-    Compiling,
-    Programming,
-    Failed
-}
-
-impl CompilerStatus {
-    pub fn to_str(self) -> &'static str {
-        match self {
-            CompilerStatus::Idle => "&aIdle",
-            CompilerStatus::Compiling => "&eCompiling",
-            CompilerStatus::Programming => "&9Programming",
-            CompilerStatus::Failed => "&cStopped",
-        }
-    }
-}
-
 
 
 

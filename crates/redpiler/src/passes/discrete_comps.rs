@@ -1,115 +1,101 @@
 use super::Pass;
-use crate::compile_graph::{Annotations, CompileGraph, CompileLink, CompileNode, NodeIdx, NodeState, NodeType, LinkType};
-use crate::{CompilerInput, CompilerOptions};
+use crate::compile_graph::{CompileGraph, LinkType, NodeIdx, NodeType};
+use crate::{BackendVariant, CompilerInput, CompilerOptions};
 use mchprs_blocks::blocks::ComparatorMode;
 use mchprs_world::World;
-use petgraph::adj::EdgeReference;
-use petgraph::data::Build;
-use petgraph::visit::{EdgeFiltered, EdgeIndexable, EdgeRef, IntoEdgesDirected, NodeIndexable};
-use petgraph::Direction;
-use crate::redpiler_graph::Link;
-
+use petgraph::visit::{EdgeRef, NodeIndexable};
 pub struct DiscreteComparators;
-
-struct CompInput {
-    states: Vec<InputWeight>,
-}
-
-enum InputWeight {
-    Default (u8),
-    Side (u8),
-    Both (u8, u8),
-}
 
 impl<W: World> Pass<W> for DiscreteComparators {
     fn run_pass(&self, graph: &mut CompileGraph, _: &CompilerOptions, _: &CompilerInput<'_, W>) {
-        let mut starting_nodes : Vec<NodeIdx> = Vec::new();
-        
-        'next: for i in 0..graph.node_bound() {
+        for i in 0..graph.node_bound() {
             let start_idx = NodeIdx::new(i);
+
             if !graph.contains_node(start_idx) {
-                continue 'next;
+                continue;
             }
 
             match graph[start_idx].ty {
-                NodeType::Comparator { mode, far_input:_, facing_diode:_ } =>
-                    search(graph, start_idx, mode),
+                NodeType::Comparator { mode, far_input:_, facing_diode:_ } => {
+                    let mut side_states = 1_u16;
+                    let mut back_states = 1_u16;
+
+                    for edge in graph.edges_directed(start_idx, petgraph::Direction::Incoming) {
+                        let weight = edge.weight(); 
+                        let source = &graph[edge.source()].ty;
+
+                        let mut temp_states = 0_u16;
+                        let mut const_input = false;
+
+                        match source {
+                            NodeType::Repeater {..} |
+                            NodeType::Torch |
+                            NodeType::Button |
+                            NodeType::Lever |
+                            NodeType::PressurePlate => {
+                                temp_states = 0x8000 >> weight.ss;
+                            }
+                            NodeType::Comparator {..} |
+                            NodeType::FPGAComparator {..} => {
+                                temp_states = 0xFFFF >> (weight.ss);
+                            }
+                            NodeType::Constant => {
+                                const_input = true;
+                                temp_states = 0x8000 >> weight.ss;
+                            }
+                            _ => {} 
+                        } 
+
+                        match weight.ty {
+                            LinkType::Default => {
+                                if const_input {
+                                    back_states &= 0xFFFE;
+                                }
+                                back_states |= temp_states;
+                            }
+                            LinkType::Side => {
+                                if const_input {
+                                    back_states &= 0xFFFE;
+                                }
+                                side_states |= temp_states;
+                            }
+                        }
+                    }
+
+                    let mut states = 0_u16;
+
+                    match mode {
+                        ComparatorMode::Compare => {
+                            let magic_mask = !((side_states - 1) & !side_states);
+                            states = back_states & magic_mask;
+                        }
+                        ComparatorMode::Subtract => {
+                            for i in 0..15 {
+                                let bit = (side_states >> i) & 0x01;
+                                if bit == 1 {
+                                    states |= back_states >> i;
+                                }
+                            }
+                        }
+                    }
+                    graph[start_idx].ty = NodeType::FPGAComparator { 
+                        mode: mode,
+                        outputs: states,
+                        side: side_states,
+                        back: back_states,
+                    };
+                }
                 _ => {}
-            }
+            }   
         }
     }
 
     fn status_message(&self) -> &'static str {
-        "Converting Comparators into LUTs"
+        "Optimizing Comparators for FPGA"
     }
-}
 
-fn search (graph: &mut CompileGraph, node: NodeIdx, mode: ComparatorMode) {
-
-    // for neighbor in graph.neighbors_directed(node, Direction::Incoming) {
-    //     if matches!(graph[neighbor].ty, NodeType::Comparator { .. }) {
-    //         return
-    //     }
-    // }
-
-    // let mut inputs: Vec<CompInput> = Vec::new();
-
-    // let mut direct_const: u8 = 0;
-    // let mut side_const: u8 = 0;
-
-    // for i_node in graph.neighbors_directed(node, Direction::Incoming) {
-    //     let links: Vec<&CompileLink> = Vec::new(); 
-    //     for i_edge in graph.edges_connecting(i_node, node) {
-    //         links.push(i_edge.weight());
-    //     }
-
-    //     match inputs
-            
-
-    //     } else {
-    //         let input =  if links.len() == 2 {
-    //             if links[0].ty == LinkType::Default {
-    //                 InputWeight::Both(links[0].ss, links[1].ss)
-    //             } else {
-    //                 InputWeight::Both(links[1].ss, links[0].ss)
-    //             } 
-    //         } else {
-    //             if links[0].ty == LinkType::Default {
-    //                 InputWeight::Default(links[0].ss)
-    //             } else {
-    //                 InputWeight::Side(links[0].ss)
-    //             } 
-    //         };
-    
-    //         inputs.push(CompInput{id:i_node, w:input});
-    //     }
-    // }
-
-
-    // for i in 0..inputs.len() {
-    //     let 
-    //     for j in i..inputs.len() {
-
-    //     }
-    // }
-
-    // let mut edges: Vec<(NodeIdx, NodeIdx, CompileLink)> = Vec::new();
-    // for edge in graph.edges(node) {
-    //     let source = edge.source();
-    //     let target = edge.target();
-    //     let weight = edge.weight();
-
-    //     if source == node {
-    //         edges.push((d_comp, target, CompileLink{ss:weight.ss, ty:weight.ty}));
-    //     }
-    //     else {
-    //         edges.push((source, d_comp, CompileLink{ss:weight.ss, ty:weight.ty}));
-    //     }
-    // }
-    // for (o_node,i_node, link) in edges {
-    //     graph.add_edge(o_node, i_node, link);
-    // }
-
-    // graph.remove_node(node);
+    fn should_run(&self, options: &CompilerOptions) -> bool {
+        options.backend_variant == BackendVariant::FPGA
+    }
 }
 

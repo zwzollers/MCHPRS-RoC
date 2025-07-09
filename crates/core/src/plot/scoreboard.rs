@@ -25,7 +25,7 @@ impl Scoreboard {
         let mut sb: Vec<String> = Vec::new();
 
         for (name, (options, status)) in &self.backend_list {
-            sb.push(format!("&f{:15} {}", name, status.to_str()));
+            sb.push(format!("&f{:^15}:{:^10}", name, status.to_str()));
             sb.extend(options.to_str_vec());
         }
 

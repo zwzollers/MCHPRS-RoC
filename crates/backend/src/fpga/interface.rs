@@ -171,25 +171,3 @@ impl SerialConnection {
         self.conn.as_mut().unwrap().write(&vec![data]).is_ok()
     }
 }
-
-#[derive(Default, Clone, Copy, PartialEq)]
-pub enum DeviceStatus {
-    #[default]
-    Inactive,
-    Programming,
-    Connected,
-    Disconnected,
-    Failed
-}
-
-impl DeviceStatus {
-    pub fn to_str(self) -> &'static str {
-        match self {
-            DeviceStatus::Inactive => "&cInactive",
-            DeviceStatus::Programming => "&9Programming",
-            DeviceStatus::Connected => "&aConnected",
-            DeviceStatus::Disconnected => "&cDisconnected",
-            DeviceStatus::Failed => "&cStopped",
-        }
-    }
-}

@@ -1,6 +1,9 @@
-use mchprs_blocks::blocks::Block;
+use mchprs_blocks::blocks::{Block, ComparatorMode};
 use petgraph::visit::EdgeRef;
 use mchprs_redpiler::compile_graph::{CompileGraph, LinkType, NodeType};
+use std::any::Any;
+use std::cmp::max;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -58,11 +61,11 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                         get_inputs_str(graph, id, Some(LinkType::Default)),
                         id));
                 }
-                NodeType::Comparator { mode: _, far_input: _, facing_diode: _} => {
-
+                NodeType::FPGAComparator { mode, outputs, side, back } => {
+                    verilog.push_str(&comp_to_str(graph, id,  back, side, outputs));
                 }
                 _ => ()
-            }
+            } 
         }
     }
     verilog.push_str("endmodule");
@@ -81,7 +84,24 @@ fn get_inputs_str (graph: &CompileGraph, node: usize, ty: Option<LinkType>) -> S
     for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Incoming) {
         let weight = edge.weight(); 
         if ty == None || weight.ty == ty.unwrap() {
-            inputs.push_str(&format!("w{}|", edge.source().index()));
+            let src = edge.source();
+            let src_node = &graph[src].ty;
+            let weight = edge.weight();
+
+            match src_node {
+                NodeType::Repeater {..} |
+                NodeType::Button |
+                NodeType::Lever | 
+                NodeType::Torch | 
+                NodeType::PressurePlate => {
+                    inputs.push_str(&format!("w{}|", src.index()));
+                }
+                NodeType::FPGAComparator {outputs, side:_, back:_, mode:_} => {
+                    inputs.push_str(&format!("w{}[{}]|", src.index(), ss_to_idx(*outputs, 14-weight.ss)));
+                }
+                _ => {}
+            }
+            
         }
     }
     inputs.pop();
@@ -102,4 +122,151 @@ fn is_locker (graph: &CompileGraph, node: usize) -> bool {
         if link.ty == LinkType::Side {return true}
     }
     false
+}
+
+fn comp_to_str(graph: &CompileGraph, node: usize, back: u16, side: u16, out: u16) -> String {
+    let mut verilog: String = "".to_string();
+
+    let s_size: usize = side.count_ones() as usize;
+    let mut s_inputs: Vec<Vec<(usize, Option<u8>)>> = vec![Vec::new(); s_size];
+
+    let b_size: usize = back.count_ones() as usize;
+    let mut b_inputs: Vec<Vec<(usize, Option<u8>)>> = vec![Vec::new(); b_size];
+
+    for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Incoming) {
+        let src = edge.source();
+        let src_node = &graph[src].ty;
+        let weight = edge.weight();
+        let in_dir = weight.ty;
+
+        match src_node {
+            NodeType::Repeater {..} |
+            NodeType::Button |
+            NodeType::Lever | 
+            NodeType::Torch | 
+            NodeType::PressurePlate => {
+                if in_dir == LinkType::Default {
+                    b_inputs[ss_to_idx(back, weight.ss) as usize].push((src.index(), None));
+                }
+                else {
+                    s_inputs[ss_to_idx(side, weight.ss) as usize].push((src.index(), None));
+                }
+            }
+            NodeType::FPGAComparator {outputs, side:_, back:_, mode:_} => {
+                for i in weight.ss..16 {
+                    if ((outputs << (i-weight.ss)) & 0x8000) == 0x8000 {
+                        let src_idx = ss_to_idx(*outputs, i-weight.ss);
+                        if in_dir == LinkType::Default {
+                            b_inputs[ss_to_idx(back, i) as usize].push((src.index(), Some(src_idx)));
+                        }
+                        else {
+                            s_inputs[ss_to_idx(side, i) as usize].push((src.index(), Some(src_idx)));
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if b_inputs.len() > 0 {
+        verilog.push_str(&format!("\twire[{}:0] w{}_b = {{", b_size-1, node));
+        for i in 0..b_size {
+            if b_inputs[(b_size-i-1) as usize].len() == 0 {
+                verilog.push_str("1'b0|");
+            }
+            if i > 0 {
+                verilog.push_str(&format!("w{}_b[{}]|", node, b_size-i));
+            }
+            for (src_node, index) in &b_inputs[(b_size-i-1) as usize] {
+                
+                if !index.is_none() {
+                    verilog.push_str(&format!("w{}[{}]|", src_node, index.unwrap()));
+                }
+                else {
+                    verilog.push_str(&format!("w{}|", src_node));
+                }
+            }
+            verilog.pop();
+            verilog.push_str(",");
+        }
+        verilog.pop();
+        verilog.push_str("};\n");
+    }
+
+    if s_inputs.len() > 0 {
+        verilog.push_str(&format!("\twire[{}:0] w{}_s = {{", s_size-1, node));
+        for i in 0..s_size {
+            if s_inputs[(s_size-i-1) as usize].len() == 0 {
+                verilog.push_str("1'b0|");
+            }
+            if i > 0 {
+                verilog.push_str(&format!("w{}_s[{}]|", node, s_size-i));
+            }
+            for (src_node, index) in &s_inputs[(s_size-i-1) as usize] {
+                
+                if !index.is_none() {
+                    verilog.push_str(&format!("w{}[{}]|", src_node, index.unwrap()));
+                }
+                else {
+                    verilog.push_str(&format!("w{}|", src_node));
+                }
+            }
+            verilog.pop();
+            verilog.push_str(",");
+        }
+        verilog.pop();
+        verilog.push_str("};\n");
+    }
+
+
+    let b_table = get_index_table(back);
+    let s_table = get_index_table(side);
+
+    let o_size: usize = out.count_ones() as usize;
+    let mut outputs: Vec<Vec<(u8, u8)>> = vec![Vec::new(); o_size]; 
+
+    for i in 0..b_size {
+        for j in 0..s_size {
+            if b_table[i] > s_table[j] {
+                outputs[ss_to_idx(out, 15 - b_table[i] + s_table[j]) as usize].push((i as u8, j as u8));
+            } 
+        }
+    }
+
+    verilog.push_str(&format!("\twire[{}:0] w{} = {{", o_size-1, node));
+    for i in 0..o_size {
+        if outputs[(o_size-i-1) as usize].len() == 0 {
+            verilog.push_str("1'b0|");
+        }
+        if i > 0 {
+            verilog.push_str(&format!("w{}[{}]|", node, o_size-i));
+        }
+        for (b_idx, s_idx) in &outputs[(o_size-i-1) as usize] {
+            verilog.push_str(&format!("(w{}_s[{}]&~w{}_s[{}]&w{}_b[{}])|", node, s_idx, node, s_idx+1, node, b_idx));
+        }
+        verilog.pop();
+        verilog.push_str(",");
+    }
+    verilog.pop();
+    verilog.push_str("};\n");
+
+    verilog
+}
+
+fn get_index_table(states: u16) -> Vec<u8> {
+    let mut table: Vec<u8> = Vec::new();
+
+    for i in 0..16 {
+        if ((states >> i) & 1) == 1 {
+            table.push(i);
+        }
+    }
+
+    table
+}
+
+fn ss_to_idx(states: u16, ss: u8) -> u8 {
+    let m = states & (0xFFFF >> (ss+1));
+    m.count_ones() as u8
 }

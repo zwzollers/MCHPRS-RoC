@@ -18,6 +18,12 @@ pub enum NodeType {
         far_input: Option<u8>,
         facing_diode: bool,
     },
+    FPGAComparator {
+        mode: ComparatorMode,
+        outputs: u16,
+        side: u16,
+        back: u16,
+    },
     Lamp,
     Button,
     Lever,
@@ -29,14 +35,6 @@ pub enum NodeType {
         instrument: Instrument,
         note: u32,
     },
-    DiscreteComparator {
-        states: u16
-    },
-    LUT {
-        input: Vec<LUTEntry>,
-        side: Vec<LUTEntry>,
-        output: Vec<LUTEntry>
-    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
@@ -87,10 +85,10 @@ impl NodeState {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Annotations {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompileNode {
     pub ty: NodeType,
     pub block: Option<(BlockPos, u32)>,
