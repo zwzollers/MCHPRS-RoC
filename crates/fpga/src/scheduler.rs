@@ -59,3 +59,9 @@ pub struct FPGA {
     pub config: DeviceConfig,
     owner: Option<(i32,i32)>,
 }
+
+impl FPGA {
+    pub fn get_owner(&self) -> Option<(i32,i32)> {
+        self.owner
+    }
+}

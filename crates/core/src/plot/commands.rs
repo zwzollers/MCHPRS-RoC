@@ -347,14 +347,14 @@ impl Plot {
                 if args.is_empty() {
                     let report = self.timings.generate_report();
                     if let Some(report) = report {
-                        self.players[player].send_chat_message(&TextComponent::from_legacy_text(
+                        self.players[player].send_chat_message(TextComponent::from_legacy_text(
                             &format!(
                             "&6RTPS from last 10s, 1m, 5m, 15m: &a{:.1}, {:.1}, {:.1}, {:.1} ({})",
                             report.ten_s, report.one_m, report.five_m, report.fifteen_m, self.tps
                         ),
                         ));
                     } else {
-                        self.players[player].send_chat_message(&TextComponent::from_legacy_text(
+                        self.players[player].send_chat_message(TextComponent::from_legacy_text(
                             &format!("&6No timings data. &a({})", self.tps),
                         ));
                     }

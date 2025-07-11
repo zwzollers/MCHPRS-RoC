@@ -341,7 +341,7 @@ impl Plot {
 
     pub fn broadcast_plot_chat_message(&mut self, message: &str) {
         for player in &mut self.players {
-            player.send_chat_message(&TextComponent::from_legacy_text(message));
+            player.send_chat_message(TextComponent::from_legacy_text(message));
         }
     }
 
@@ -897,7 +897,7 @@ impl Plot {
             match message {
                 BroadcastMessage::Chat(_sender, message) => {
                     for player in &mut self.players {
-                        player.send_chat_message(&message);
+                        player.send_chat_message(message.clone());
                     }
                 }
                 BroadcastMessage::PlayerJoinedInfo(player_join_info) => {
@@ -1039,7 +1039,7 @@ impl Plot {
             new_sb = true;
         }
         if new_sb {
-            self.scoreboard.update(&self.players);
+            self.scoreboard.update(&self.players, &self.scheduler);
         }
 
         // Only tick if there are players in the plot
@@ -1274,6 +1274,8 @@ impl Plot {
         if let Some(player) = initial_player {
             self.enter_plot(player);
         }
+
+        self.scoreboard.update(&self.players, &self.scheduler);
 
         while self.running {
             // Fast path, for super high RTPS

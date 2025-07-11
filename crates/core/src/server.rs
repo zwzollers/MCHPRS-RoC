@@ -73,7 +73,7 @@ pub enum Message {
 pub enum BroadcastMessage {
     /// This message is broadcasted for chat messages. It contains the uuid of the player and
     /// the raw json data to send to the clients.
-    Chat(u128, Vec<TextComponent>),
+    Chat(u128, TextComponent),
     /// This message is broadcasted when a player joins the server. It is used to update
     /// the tab-list on all connected clients.
     PlayerJoinedInfo(PlayerJoinInfo),

@@ -417,10 +417,8 @@ impl Player {
     }
 
     /// Sends a raw chat message to the player
-    pub fn send_chat_message(&self, message: &[TextComponent]) {
-        let mut component: TextComponent = Default::default();
-        component.extra = message.to_vec();
-        self.send_raw_chat(component);
+    pub fn send_chat_message(&self, message: TextComponent) {
+        self.send_raw_chat(message);
     }
 
     pub fn send_no_permission_message(&self) {

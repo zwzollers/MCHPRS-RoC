@@ -8,7 +8,7 @@ use mchprs_blocks::blocks::{Block, FlipDirection, RotateAmt};
 use mchprs_blocks::items::{Item, ItemStack};
 use mchprs_blocks::{BlockFace, BlockFacing, BlockPos};
 use mchprs_network::packets::clientbound::*;
-use mchprs_text::{ColorCode, TextComponentBuilder};
+use mchprs_text::{ColorCode, TextComponent, TextComponentBuilder};
 use once_cell::sync::Lazy;
 use schematic::{load_schematic, save_schematic};
 use std::time::Instant;
@@ -854,7 +854,8 @@ pub(super) fn execute_help(mut ctx: CommandExecuteContext<'_>) {
         ]);
     }
 
-    player.send_chat_message(&message);
+    player.send_chat_message(TextComponent {extra: message, ..Default::default()});
+    
 }
 
 pub(super) fn execute_up(ctx: CommandExecuteContext<'_>) {

@@ -159,7 +159,7 @@ pub struct TextComponent {
 }
 
 impl TextComponent {
-    pub fn from_legacy_text(message: &str) -> Vec<TextComponent> {
+    pub fn from_legacy_text(message: &str) -> TextComponent {
         let mut components = Vec::new();
 
         let mut cur_component: TextComponent = Default::default();
@@ -247,7 +247,11 @@ impl TextComponent {
             }
         }
 
-        new_componenets
+        let mut text = TextComponent::default();
+        text.extra = new_componenets;
+
+        text
+        
     }
 
     pub fn encode_json(&self) -> String {
