@@ -1,6 +1,6 @@
-use std::{collections::HashMap, fs::File, io::Write, path::Path};
+use std::{fs::File, io::Write, path::Path};
 
-use crate::fpga::{compiler::DeviceConfig, interface::{BinaryIterator, Interface}, FPGABackend};
+use crate::fpga::{compiler::DeviceConfig, interface::BinaryIterator, FPGABackend};
 use mchprs_blocks::{blocks::{Block, ButtonFace, Lever, LeverFace, RedstoneWire, RedstoneWireSide, StoneButton, TrapdoorHalf}, BlockDirection, BlockPos};
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;

@@ -91,9 +91,6 @@ impl Interface {
         }        
     }
 
-    pub fn stop(&mut self) {
-        self.serial_conn.stop();
-    }
 }
 
 
@@ -149,10 +146,6 @@ impl SerialConnection {
             .ok();
 
         !self.conn.is_none()
-    }
-
-    pub fn stop (&mut self) {
-        drop(self.conn.as_mut().unwrap())
     }
 
     pub fn read (&mut self, buffer: &mut Vec<u8>) -> bool {

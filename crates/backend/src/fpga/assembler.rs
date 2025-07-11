@@ -1,9 +1,7 @@
 use mchprs_blocks::blocks::{Block, ComparatorMode};
+use petgraph::graph::NodeIndex;
 use petgraph::visit::EdgeRef;
 use mchprs_redpiler::compile_graph::{CompileGraph, LinkType, NodeType};
-use std::any::Any;
-use std::cmp::max;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -20,53 +18,69 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
     output  [OUTPUTS-1:0]   outputs
 );\n\n".to_owned();
 
-    let mut input_count = 0;
-    let mut output_count = 0;
+    let mut input_id = 0;
+    let mut output_id = 0;
 
     for nodeid in graph.node_indices() {
         let node = &graph[nodeid];
         let id = nodeid.index();
-        if let Some((pos, blockid)) = node.block {
-            let block = Block::from_id(blockid);
-            let state = node.state.powered;
+        let state = node.state.powered;
 
-            match node.ty {
-                NodeType::Lever | NodeType::PressurePlate | NodeType::Button => {
-                    verilog.push_str(&format!("\twire w{id};\n"));
-                    verilog.push_str(&format!("\tassign w{id} = inputs[{input_count}];\n"));
-                    input_count += 1;
+        match node.ty {
+            NodeType::Lever | NodeType::PressurePlate | NodeType::Button => {
+                verilog.push_str(&format!("\twire w{id} = inputs[{input_id}];\n"));
+                input_id += 1;
+            }
+            NodeType::Lamp | NodeType::Trapdoor => {
+                verilog.push_str(&format!("\tassign outputs[{output_id}] = ({});\n", 
+                    get_inputs_str(graph, id, Some(LinkType::Default))));
+                output_id += 1;
+            }
+            NodeType::Repeater { delay, facing_diode: _ } => {
+                verilog.push_str(&format!("\twire w{};\n", id));
+                verilog.push_str(&format!("\trepeater #(.t({}), .state(1'b{}), .lock_out({}), .lockable({})) c{} (.i_clk(tick), .i_in({}), .i_lock({}), .o_out(w{}));\n",
+                    delay,
+                    if state {1} else {0},
+                    if is_locker(graph, id) {1} else {0},
+                    if is_locking(graph, id) {1} else {0},
+                    id,
+                    get_inputs_str(graph, id, Some(LinkType::Default)),
+                    get_inputs_str(graph, id, Some(LinkType::Side)),
+                    id
+                ));
+            }
+            NodeType::Torch => {
+                verilog.push_str(&format!("\twire w{};\n", id));
+                verilog.push_str(&format!("\ttorch #(.state(1'b{})) c{} (.i_clk(tick), .i_in({}), .o_out(w{}));\n", 
+                    if state {1} else {0},
+                    id,
+                    get_inputs_str(graph, id, Some(LinkType::Default)),
+                    id
+                ));
+            }
+            NodeType::FPGAComparator { mode, outputs, side, back } => {
+                let mut state_str = "".to_string();
+                for i in 0..outputs.count_ones() {
+                    if outputs.count_ones()-i-1 >= ss_to_idx(outputs, 15-node.state.output_strength) as u32 {
+                        state_str.push('0');
+                    }
+                    else {
+                        state_str.push('1');
+                    }
                 }
-                NodeType::Lamp | NodeType::Trapdoor => {
-                    verilog.push_str(&format!("\tassign outputs[{output_count}] = ({});\n", 
-                        get_inputs_str(graph, id, Some(LinkType::Default))));
-                    output_count += 1;
-                }
-                NodeType::Repeater { delay, facing_diode: _ } => {
-                    verilog.push_str(&format!("\twire w{};\n", id));
-                    verilog.push_str(&format!("\trepeater #({}, 1'b{}, {}, {}) c{} (.i_clk(tick), .i_in({}), .i_lock({}), .o_out(w{}));\n",
-                        delay,
-                        if state {1} else {0},
-                        if is_locker(graph, id) {1} else {0},
-                        if is_locking(graph, id) {1} else {0},
-                        id,
-                        get_inputs_str(graph, id, Some(LinkType::Default)),
-                        get_inputs_str(graph, id, Some(LinkType::Side)),
-                        id));
-                }
-                NodeType::Torch => {
-                    verilog.push_str(&format!("\twire w{};\n", id));
-                    verilog.push_str(&format!("\ttorch #(1'b{}) c{} (.i_clk(tick), .i_in({}), .o_out(w{}));\n", 
-                        if state {1} else {0},
-                        id,
-                        get_inputs_str(graph, id, Some(LinkType::Default)),
-                        id));
-                }
-                NodeType::FPGAComparator { mode, outputs, side, back } => {
-                    verilog.push_str(&comp_to_str(graph, id,  back, side, outputs));
-                }
-                _ => ()
-            } 
-        }
+                verilog.push_str(&comp_to_str(graph, id,  back, side, outputs));
+                verilog.push_str(&format!("\twire[{}:0] w{};\n", outputs.count_ones()-1, id));
+                verilog.push_str(&format!("\tcomp #(.size({}), .state({}'b{})) c{} (.i_clk(tick), .i_in(w{}_o), .o_out(w{}));\n",
+                    outputs.count_ones(),
+                    outputs.count_ones(),
+                    state_str,
+                    id,
+                    id,
+                    id
+                ));
+            }
+            _ => ()
+        } 
     }
     verilog.push_str("endmodule");
 
@@ -160,6 +174,7 @@ fn comp_to_str(graph: &CompileGraph, node: usize, back: u16, side: u16, out: u16
                             b_inputs[ss_to_idx(back, i) as usize].push((src.index(), Some(src_idx)));
                         }
                         else {
+                            println!("{side:b},{i}, {:?}", graph[NodeIndex::new(node)].block);
                             s_inputs[ss_to_idx(side, i) as usize].push((src.index(), Some(src_idx)));
                         }
                     }
@@ -173,7 +188,7 @@ fn comp_to_str(graph: &CompileGraph, node: usize, back: u16, side: u16, out: u16
         verilog.push_str(&format!("\twire[{}:0] w{}_b = {{", b_size-1, node));
         for i in 0..b_size {
             if b_inputs[(b_size-i-1) as usize].len() == 0 {
-                verilog.push_str("1'b0|");
+                verilog.push_str(&format!("1'b{}|", if i == b_size-1 {"1"} else {"0"}));
             }
             if i > 0 {
                 verilog.push_str(&format!("w{}_b[{}]|", node, b_size-i));
@@ -198,7 +213,7 @@ fn comp_to_str(graph: &CompileGraph, node: usize, back: u16, side: u16, out: u16
         verilog.push_str(&format!("\twire[{}:0] w{}_s = {{", s_size-1, node));
         for i in 0..s_size {
             if s_inputs[(s_size-i-1) as usize].len() == 0 {
-                verilog.push_str("1'b0|");
+                verilog.push_str(&format!("1'b{}|", if i == s_size-1 {"1"} else {"0"}));
             }
             if i > 0 {
                 verilog.push_str(&format!("w{}_s[{}]|", node, s_size-i));
@@ -234,16 +249,21 @@ fn comp_to_str(graph: &CompileGraph, node: usize, back: u16, side: u16, out: u16
         }
     }
 
-    verilog.push_str(&format!("\twire[{}:0] w{} = {{", o_size-1, node));
+    verilog.push_str(&format!("\twire[{}:0] w{}_o = {{", o_size-1, node));
     for i in 0..o_size {
         if outputs[(o_size-i-1) as usize].len() == 0 {
-            verilog.push_str("1'b0|");
+            verilog.push_str(&format!("1'b{}|", if i == o_size-1 {"1"} else {"0"}));
         }
         if i > 0 {
-            verilog.push_str(&format!("w{}[{}]|", node, o_size-i));
+            verilog.push_str(&format!("w{}_o[{}]|", node, o_size-i));
         }
         for (b_idx, s_idx) in &outputs[(o_size-i-1) as usize] {
-            verilog.push_str(&format!("(w{}_s[{}]&~w{}_s[{}]&w{}_b[{}])|", node, s_idx, node, s_idx+1, node, b_idx));
+            if *s_idx >= (s_size-1) as u8 {
+                verilog.push_str(&format!("(w{}_s[{}]&w{}_b[{}])|", node, s_idx, node, b_idx));
+            }
+            else {
+                verilog.push_str(&format!("(w{}_s[{}]&~w{}_s[{}]&w{}_b[{}])|", node, s_idx, node, s_idx+1, node, b_idx));
+            }
         }
         verilog.pop();
         verilog.push_str(",");
@@ -267,6 +287,6 @@ fn get_index_table(states: u16) -> Vec<u8> {
 }
 
 fn ss_to_idx(states: u16, ss: u8) -> u8 {
-    let m = states & (0xFFFF >> (ss+1));
+    let m = states & (0xFFFF_u32 >> (ss+1)) as u16;
     m.count_ones() as u8
 }

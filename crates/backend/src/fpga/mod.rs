@@ -4,7 +4,7 @@ pub mod interface;
 pub mod compiler;
 
 use super::JITBackend;
-use mchprs_redpiler::compile_graph::{CompileGraph, NodeType};
+use mchprs_redpiler::compile_graph::CompileGraph;
 use crate::fpga::linker::Linker;
 use crate::CompilerOptions;
 use compiler::DeviceConfig;
@@ -79,8 +79,8 @@ impl JITBackend for FPGABackend {
         println!("compile");
         self.config.compile(Path::new(&format!("FPGA/bin/{}/prj", self.path)));
         println!("done");
+        _ = copy(Path::new(&format!("FPGA/bin/{}/prj/RoC.sof", self.path)), Path::new(&format!("FPGA/bin/{}/RoC.sof", self.path)));
         if !options.compile_verilog {
-            _ = copy(Path::new(&format!("FPGA/bin/{}/prj/RoC.sof", self.path)), Path::new(&format!("FPGA/bin/{}/RoC.sof", self.path)));
             _ = remove_dir_all(Path::new(&format!("FPGA/bin/{}/prj", self.path)));  
         }
     }

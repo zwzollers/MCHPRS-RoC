@@ -1,14 +1,11 @@
-use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::env;
 use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
-use serde_json;
 use serde;
 
-use crate::fpga::FPGABackend;
 
 #[derive(serde::Deserialize, Debug, Clone, Default)]
 pub struct DeviceConfig {
