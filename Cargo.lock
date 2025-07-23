@@ -1230,6 +1230,7 @@ dependencies = [
 name = "mchprs"
 version = "0.4.1"
 dependencies = [
+ "mchprs_backend",
  "mchprs_blocks",
  "mchprs_core",
  "mchprs_redpiler",

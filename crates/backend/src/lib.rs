@@ -61,6 +61,12 @@ pub enum BackendDispatcher {
     FPGABackend,
 }
 
+impl Default for BackendDispatcher {
+    fn default() -> Self {
+        BackendDispatcher::DirectBackend(DirectBackend::default())
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BackendStatus {
     Stopped,
@@ -88,9 +94,10 @@ pub enum BackendMsg {
     Delete{backend: String}
 }
 
+#[derive(Default)]
 pub struct Backend {
     is_active: bool,
-    sender: Sender<BackendMsg>,
+    sender: Option<Sender<BackendMsg>>,
     pub name: String,
     jit: BackendDispatcher,
     options: CompilerOptions,
@@ -116,7 +123,7 @@ impl Backend {
                 _ = new_sender.send(BackendMsg::BackendStatus { backend: name.clone(), status: BackendStatus::Ready });
                 backends.push(Backend { 
                     is_active: false,
-                    sender: sender.clone(),
+                    sender: Some(sender.clone()),
                     name: name.clone(),
                     jit: BackendDispatcher::FPGABackend(backend),
                     options: CompilerOptions::fpga()  
@@ -167,7 +174,7 @@ impl Backend {
 
         Backend{ 
             is_active: false,
-            sender: sender,
+            sender: Some(sender),
             name: name,
             jit: jit,
             options: options,
@@ -198,12 +205,12 @@ impl Backend {
 
     pub fn run(&mut self) {
         self.backend().run();
-        _ = self.sender.send(BackendMsg::BackendStatus { backend: self.name.clone(), status: BackendStatus::Active });
+        _ = self.sender.as_mut().unwrap().send(BackendMsg::BackendStatus { backend: self.name.clone(), status: BackendStatus::Active });
     }
 
     pub fn stop(&mut self) {
         self.backend().stop();
-        _ = self.sender.send(BackendMsg::BackendStatus { backend: self.name.clone(), status: BackendStatus::Ready });
+        _ = self.sender.as_mut().unwrap().send(BackendMsg::BackendStatus { backend: self.name.clone(), status: BackendStatus::Ready });
     }
 
     pub fn tick(&mut self) {

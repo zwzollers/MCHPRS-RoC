@@ -96,6 +96,7 @@ impl<W: World> Pass<W> for AnalogRepeaters {
                     mode: ComparatorMode::Compare,
                     far_input: None,
                     facing_diode: false,
+                    states: None,
                 },
                 block: None,
                 state,

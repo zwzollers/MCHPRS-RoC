@@ -59,6 +59,8 @@ impl JITBackend for FPGABackend {
         config: Option<DeviceConfig>,
         options: &CompilerOptions,
     ) {
+        //println!("{:?}", &graph);
+
         let path = format!("{}/{}", plot, name);
         self.link.name = name;
         self.config = config.unwrap();

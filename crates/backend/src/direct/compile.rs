@@ -103,6 +103,7 @@ fn compile_node(
             mode,
             far_input,
             facing_diode,
+            states: None,
         } => NodeType::Comparator {
             mode: *mode,
             far_input: far_input.map(|value| NonMaxU8::new(value).unwrap()),

@@ -10,7 +10,6 @@ module top (
     /*---------------------------------
                 PARAMETERS
     ---------------------------------*/
-    `include "parameters.vh"
 
     /*---------------------------------
              COMMAND CONTROLLER

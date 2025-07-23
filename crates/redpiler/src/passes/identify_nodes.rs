@@ -133,6 +133,7 @@ fn identify_block<W: World>(
                 facing_diode: mchprs_redstone::is_diode(
                     world.get_block(pos.offset(comparator.facing.opposite().block_face())),
                 ),
+                states: None,
             },
             NodeState::comparator(
                 comparator.powered,

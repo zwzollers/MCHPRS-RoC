@@ -32,7 +32,7 @@ opt-level = 1
 
 [profile.release]
 # This seems to speed up Redpiler compile times
-lto = "fat"
+lto = false
 
 [dependencies]
 mchprs_core = { path = "./crates/core" }
@@ -46,6 +46,7 @@ serde_json = "1.0.48"
 
 [dev-dependencies]
 mchprs_world ={ path = "./crates/world" }
+mchprs_backend ={ path = "./crates/backend" }
 mchprs_blocks ={ path = "./crates/blocks" }
 mchprs_redpiler ={ path = "./crates/redpiler" }
 mchprs_redstone = { path = "./crates/redstone" }
