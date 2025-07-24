@@ -239,7 +239,7 @@ impl PalettedBitBuffer {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ChunkSection {
     buffer: PalettedBitBuffer,
     block_count: u32,
@@ -392,7 +392,7 @@ impl Default for ChunkSection {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Chunk {
     pub sections: Vec<ChunkSection>,
     pub x: i32,

@@ -1,0 +1,29 @@
+{
+  "name": "comparator xor",
+  "description": "test behavior of a soft power comparator xor gate",
+  "inputs": [
+    "0,1,0",
+    "0,1,3"
+  ],
+  "outputs": [
+    "3,1,1"
+  ],
+  "tests": [
+    {
+      "name": "default test",
+      "description": "test the default behavior of a comp xor",
+      "procedure": [
+        "0: 00 0",
+        "1: 10 0",
+        "2: 01 1",
+        "3: 11 1",
+        "4: 00 0",
+        "5: 10 0",
+        "6: 00 1",
+        "7: 01 0",
+        "8: 00 1",
+        "9: 00 0"
+      ]
+    }
+  ]
+}

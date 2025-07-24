@@ -43,8 +43,13 @@ fn parse_block(str: &str) -> Option<Block> {
     Some(block)
 }
 
-pub fn load_schematic(file_name: &str) -> Result<WorldEditClipboard> {
-    let mut file = File::open("./schems/".to_owned() + file_name)?;
+pub fn load_schematic(file_name: &str, sim: bool) -> Result<WorldEditClipboard> {
+    let mut file = if sim {
+        File::open(file_name)?
+    }
+    else {
+        File::open("./schems/".to_owned() + file_name)?
+    };
     let nbt = nbt::Blob::from_gzip_reader(&mut file)?;
 
     let root = if nbt.content.contains_key("Schematic") {

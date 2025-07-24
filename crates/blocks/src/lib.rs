@@ -93,6 +93,18 @@ impl std::fmt::Display for BlockPos {
     }
 }
 
+impl FromStr for BlockPos {
+    type Err = bool;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut cords: Vec<i32> = Vec::new();
+        for cord in s.split(',') {
+            cords.push(i32::from_str(cord).unwrap());
+        }
+
+        Ok(BlockPos{x:cords[0],y:cords[1],z:cords[2]})
+    }
+}
+
 pub trait BlockProperty: Sized {
     fn encode(self, props: &mut HashMap<&'static str, String>, name: &'static str);
     fn decode(&mut self, props: &HashMap<&str, &str>, name: &str);

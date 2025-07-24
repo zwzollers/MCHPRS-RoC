@@ -17,12 +17,7 @@ pub enum NodeType {
         mode: ComparatorMode,
         far_input: Option<u8>,
         facing_diode: bool,
-    },
-    FPGAComparator {
-        mode: ComparatorMode,
-        outputs: u16,
-        side: u16,
-        back: u16,
+        states: Option<u16>,
     },
     Lamp,
     Button,
@@ -36,15 +31,6 @@ pub enum NodeType {
         note: u32,
     },
 }
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
-pub enum LUTEntry {
-    #[default]
-    None,
-    Discrete (u16),
-    Analog (u8) //only use max 4bits
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct NodeState {
     pub powered: bool,

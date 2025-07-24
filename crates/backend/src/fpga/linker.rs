@@ -17,7 +17,7 @@ impl FPGABackend {
 }
 
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Linker {
     pub name: String,
     pub outputs: Vec<IntfBlock>,
@@ -93,10 +93,10 @@ impl Linker {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IntfBlock {
     ty: IntfType,
-    pos: BlockPos,
+    pub pos: BlockPos,
     state: u8,
 }
 
@@ -212,7 +212,7 @@ impl IntfBlock {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 enum IntfType {
     Lamp,
     Trapdoor {facing: BlockDirection, half: TrapdoorHalf},

@@ -1,7 +1,7 @@
 //! [Worldedit](https://github.com/EngineHub/WorldEdit) and [RedstoneTools](https://github.com/paulikauro/RedstoneTools) implementation
 
 mod execute;
-mod schematic;
+pub mod schematic;
 
 use super::commands::CommandFlags;
 use super::{Plot, PlotWorld};

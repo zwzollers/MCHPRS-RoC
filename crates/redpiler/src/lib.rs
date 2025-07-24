@@ -45,6 +45,8 @@ pub struct CompilerOptions {
     pub compile_verilog: bool,
     /// The backend variant to be used after compilation
     pub backend_variant: BackendVariant,
+    /// Is this backend used for simulation testing
+    pub sim_test: bool,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]

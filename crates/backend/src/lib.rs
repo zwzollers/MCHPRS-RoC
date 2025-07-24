@@ -199,7 +199,7 @@ impl Backend {
         self.options = Default::default();
     }
 
-    fn backend(&mut self) -> &mut BackendDispatcher {
+    pub fn backend(&mut self) -> &mut BackendDispatcher {
         &mut self.jit
     }
 

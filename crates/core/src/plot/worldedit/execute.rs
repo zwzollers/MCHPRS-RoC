@@ -266,7 +266,7 @@ pub(super) fn execute_load(ctx: CommandExecuteContext<'_>) {
         file_name.insert_str(0, &prefix);
     }
 
-    let clipboard = load_schematic(&file_name);
+    let clipboard = load_schematic(&file_name, false);
     match clipboard {
         Ok(cb) => {
             ctx.player.worldedit_clipboard = Some(cb);
