@@ -61,6 +61,9 @@ module top (
     /*---------------------------------
            REDSTONE IMPLEMENTATION
     ---------------------------------*/
+    parameter ROC_OUTPUTS;
+    parameter ROC_INPUTS;
+
     RoC #(
         .OUTPUTS(ROC_OUTPUTS),
         .INPUTS(ROC_INPUTS)

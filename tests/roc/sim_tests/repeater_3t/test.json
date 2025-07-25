@@ -1,0 +1,65 @@
+{
+  "name": "3t repeater",
+  "description": "test the individual component behavior and the timing of a 3t repeater",
+  "inputs": [
+    "1,2,1"
+  ],
+  "outputs": [
+    "3,2,1"
+  ],
+  "tests": [
+    {
+      "description": "test that the delay from input to output is 3t",
+      "procedure": [
+        "0: 0 0",
+        "1: 1 0",
+        "2: 1 0",
+        "3: 1 0",
+        "4: 1 1",
+        "5: 1 1"
+      ]
+    },
+    {
+      "description": "test that a pulse less then than 3t is extended to 3t",
+      "procedure": [
+        "0: 0 0",
+        "1: 1 0",
+        "2: 0 0",
+        "3: 0 0",
+        "4: 0 1",
+        "5: 0 1",
+        "6: 0 1",
+        "7: 0 0"
+      ]
+    },
+    {
+      "description": "test that the repeater turns off after 3t",
+      "procedure": [
+        "0: 0 0",
+        "1: 1 0",
+        "2: 1 0",
+        "3: 1 0",
+        "4: 0 1",
+        "5: 0 1",
+        "6: 0 1",
+        "7: 0 0"
+      ]
+    },
+    {
+      "description": "test that a 2t off pulse does not casue the ouput to turn off",
+      "procedure": [
+        "0: 0 0",
+        "1: 1 0",
+        "2: 1 0",
+        "3: 1 0",
+        "4: 0 1",
+        "5: 0 1",
+        "6: 1 1",
+        "7: 1 1",
+        "8: 1 1",
+        "9: 1 1",
+        "10: 1 1"
+      ]
+    }
+  ]
+}

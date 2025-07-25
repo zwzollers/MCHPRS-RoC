@@ -1,0 +1,20 @@
+{
+  "name": "input output",
+  "description": "test that inputs and outputs work",
+  "inputs": [
+    "1,2,1"
+  ],
+  "outputs": [
+    "2,2,1"
+  ],
+  "tests": [
+    {
+      "description": "test that the input is synced to the output",
+      "procedure": [
+        "0: 0 0",
+        "1: 1 1",
+        "2: 0 0"
+      ]
+    }
+  ]
+}

@@ -4,3 +4,7 @@
 /test_proxy
 /generators
 /.direnv
+
+/tests/**/RoC.sv
+/tests/**/tb.sv
+/tests/**/sim

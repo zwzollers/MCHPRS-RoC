@@ -83,9 +83,9 @@ set_location_assignment PIN_{i_clk} -to i_clk\n",
 
         env::set_var("quartus_sh", r"C:\intelFPGA_lite\23.1std\quartus\bin64");
 
-        let out = Command::new("cmd")
+        let out = Command::new(r"C:\intelFPGA_lite\23.1std\quartus\bin64\quartus_sh")
             .current_dir(prefix)
-            .args(&["/C", r"C:\intelFPGA_lite\23.1std\quartus\bin64\quartus_sh -t prj.tcl"])
+            .args(&["-t", "prj.tcl"])
             .output()
             .unwrap();
         println!("{:?}", String::from_utf8_lossy(&out.stdout));
@@ -95,9 +95,9 @@ set_location_assignment PIN_{i_clk} -to i_clk\n",
 
     pub fn compile (&self, path: &Path) -> CompilerResults {
         let results = CompilerResults{state: true};
-        let out = Command::new("cmd")
+        let out = Command::new(r"C:\intelFPGA_lite\23.1std\quartus\bin64\quartus_sh")
             .current_dir(path)
-            .args(&["/C", r"C:\intelFPGA_lite\23.1std\quartus\bin64\quartus_sh --flow compile RoC"])
+            .args(&["--flow", "compile", "RoC"])
             .output()
             .unwrap();
         println!("{:?}", String::from_utf8_lossy(&out.stdout));
@@ -107,10 +107,9 @@ set_location_assignment PIN_{i_clk} -to i_clk\n",
 
     pub fn program (&self, path: &Path) -> ProgramResults {
         let results = ProgramResults{};
-        let out = Command::new("cmd")
+        let out = Command::new(r"C:\intelFPGA_lite\23.1std\quartus\bin64\quartus_pgm")
             .current_dir(path)
-            .arg("/C")
-            .raw_arg(r#"C:\intelFPGA_lite\23.1std\quartus\bin64\quartus_pgm -c "DE-SoC [USB-1]" -m jtag -o "p;RoC.sof@2""#)
+            .args(&["-c", "DE-SoC [USB-1]", "-m", "jtag", "-o", "p;RoC.sof@2"])
             .output()
             .unwrap();
         println!("{:?}", String::from_utf8_lossy(&out.stdout));

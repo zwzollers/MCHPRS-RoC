@@ -14,7 +14,9 @@ pub fn run_simulations() {
         let path = path_buf.as_path();
         let link = generate_rs(path);
         let test = parse_test(path);
+        println!("Testing: {}", test.name);
         for proc in &test.tests {
+            println!("\ttest: {}", proc.description);
             let in_tbl = test.get_translation_table(IntfType::Input, &link.inputs);
             let out_tbl = test.get_translation_table(IntfType::Ouptut, &link.outputs);
             generate_tb(path, proc, in_tbl, out_tbl);
@@ -112,13 +114,13 @@ fn parse_step(step: &String, in_tbl: &Vec<usize>, out_tbl: &Vec<usize>) -> Strin
         output.push(args[2].as_bytes()[*i] as char);
     }
     let step = format!("
+        inputs = {i_size}'b{i};
         if (outputs !== {o_size}'b{o}) begin
             $display(\"FAILURE {o_size}'b%b != {o_size}'b{o}\", outputs);
             $fatal;
 		end 
         else
 			$display(\"OK\");
-        inputs = {i_size}'b{i};
         #1
         tick = ~tick;
         #1
@@ -194,7 +196,6 @@ impl Test {
 
 #[derive(Default, Debug, Deserialize)]
 struct Procedure {
-    name: String,
     description: String,
     procedure: Vec<String>,
 }

@@ -10,7 +10,6 @@
   ],
   "tests": [
     {
-      "name": "default test",
       "description": "test the default behavior of a comp xor",
       "procedure": [
         "0: 00 0",
