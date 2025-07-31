@@ -94,14 +94,15 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                                 }
                             }
                         }
-                        NodeType::Comparator { mode, far_input, facing_diode, states: in_states } => {
-                            for idx in states_iter(in_states.unwrap()) {
+                        NodeType::Comparator { mode, far_input, facing_diode, states } => {
+                            println!("0b{:b} {:?}", states.unwrap(), states_iter(states.unwrap()));
+                            for idx in states_iter(states.unwrap()) {
                                 if idx + dist as u8 >= 15 {
                                     continue;
                                 } 
                                 match link_ty {     
-                                    LinkType::Default => b_inputs[idx as usize].push((src_id, Some(15 - idx))),
-                                    LinkType::Side    => s_inputs[idx as usize].push((src_id, Some(15 - idx))),
+                                    LinkType::Default => b_inputs[idx as usize + dist].push((src_id, Some(15 - idx - dist as u8))),
+                                    LinkType::Side    => s_inputs[idx as usize + dist].push((src_id, Some(15 - idx - dist as u8))),
                                 }
                             }
                             match link_ty {     
@@ -191,6 +192,7 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                 }
                 verilog.push_str("1'b1};\n");
 
+                println!("inputs: {b_inputs:?}, {s_inputs:?}");
                 println!("input tables: {b_table:?}, {s_table:?}");
 
                 let o_size: usize = states.unwrap().count_ones() as usize - 1;
@@ -201,13 +203,17 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                 
                 match mode {
                     ComparatorMode::Compare => {
-                        for o in 0..o_size {
-                            let o_dist = o as u8;
+                        let mut o_cnt = o_size-1;
+                        for o in states_iter(states.unwrap()) {
+                            if o >= 15 {
+                                continue;
+                            }
+                            let o_dist = 15 - o as u8 - 1;
                             'b: for b in (0..b_size).rev() {
                                 let b_dist = b_table[b];
 
                                 if b_dist + o_dist >= 15 {
-                                    println!("o:{o} b:{b} {b_dist} + {o_dist} >= 15");
+                                    println!("o:{o_dist} b:{b_dist} {b_dist} + {o_dist} >= 15");
                                     continue;
                                 }
 
@@ -215,13 +221,17 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                                     let s_dist = s_table[s];
 
                                     if s_dist >= b_dist {
-                                        o_lut[o].push(((b_size-b-1) as u8, (s_size-s) as u8));
-                                        println!("o:{o} b:{} s:{} adding to lut", b_size-b-1, s_size-s);
+                                        println!("o:{o_dist} b:{} s:{} adding to lut", b_size-b-1, s_size-s);
+                                        o_lut[o_cnt].push(((b_size-b-1) as u8, (s_size-s) as u8));
                                         break 'b;
                                     }
                                     println!("o:{o} b:{b} s:{s} {s_dist} <= {b_dist} + {o_dist}");
                                 }
                             }
+                            if o_cnt == 0 {
+                                break;
+                            }
+                            o_cnt -= 1;
                         }
                     }
                     ComparatorMode::Subtract => {
@@ -286,14 +296,20 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                 } 
                 verilog.push_str("1'b1\n\t};\n");
 
-                // let mut init_str = "".to_string();
+                let mut init_str = "".to_string();
+                let s = states.unwrap() >> node.state.output_strength;
 
-                // for o in 0..o_size {
+                println!("{} {:b}", node.state.output_strength, s);
 
-                // }
-
-                // init_str.push('1');
-
+                for i in 0..o_size {
+                    
+                    if i < s.count_ones() as usize {
+                        init_str.push('0');
+                    }
+                    else {
+                        init_str.push('1');
+                    }
+                }
 
                 verilog.push_str(&format!("\twire[{}:0] w{};\n", o_size, id));
                 verilog.push_str(&format!("\tcomp #(.size({}), .state({}'d0)) c{} (.i_clk(tick), .i_in(w{}_o), .o_out(w{}));\n",

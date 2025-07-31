@@ -16,7 +16,7 @@ pub fn run_simulations() {
         let test = parse_test(path);
         println!("Testing: {}", test.name);
         for proc in &test.tests {
-            println!("\ttest: {}", proc.description);
+            println!("test: {}", proc.description);
             let in_tbl = test.get_translation_table(IntfType::Input, &link.inputs);
             let out_tbl = test.get_translation_table(IntfType::Ouptut, &link.outputs);
             generate_tb(path, proc, in_tbl, out_tbl);
@@ -50,12 +50,21 @@ fn run_sim(path: &Path) -> bool {
         .output()
         .unwrap();
 
+    if !out.status.success() {
+        println!("{:?}", String::from_utf8_lossy(&out.stderr));
+    }
+
     let out = Command::new("cmd")
         .current_dir(path)
         .args(&["/C", "vvp sim"])
         .output()
         .unwrap();
-    println!("{:#?}", String::from_utf8_lossy(&out.stdout));
+
+    let output = String::from_utf8_lossy(&out.stdout);
+    let lines = output.split(r"\r\n");
+    for line in lines {
+        println!("{line}");
+    }
 
     out.status.success()
 }
@@ -66,6 +75,8 @@ fn generate_tb(path: &Path, proc: &Procedure, in_tbl: Vec<usize>, out_tbl: Vec<u
     for step in &proc.procedure {
         proc_str.push_str(&parse_step(step, &in_tbl, &out_tbl));
     }
+
+    let in_cnt = if in_tbl.len() == 0 {1} else {in_tbl.len()};
 
     let tb = format!("module tb;\n
     parameter OUTPUTS = {out_cnt};
@@ -93,7 +104,7 @@ fn generate_tb(path: &Path, proc: &Procedure, in_tbl: Vec<usize>, out_tbl: Vec<u
 
 endmodule: tb",
     out_cnt = out_tbl.len(),
-    in_cnt = in_tbl.len(),
+    in_cnt = in_cnt,
     proc = proc_str);
 
     let mut file = File::create(path.join("tb.sv")).unwrap();
@@ -113,6 +124,8 @@ fn parse_step(step: &String, in_tbl: &Vec<usize>, out_tbl: &Vec<usize>) -> Strin
     for i in out_tbl {
         output.push(args[2].as_bytes()[*i] as char);
     }
+    if input == "" {input.push('0');}
+
     let step = format!("
         inputs = {i_size}'b{i};
         if (outputs !== {o_size}'b{o}) begin
@@ -120,12 +133,12 @@ fn parse_step(step: &String, in_tbl: &Vec<usize>, out_tbl: &Vec<usize>) -> Strin
             $fatal;
 		end 
         else
-			$display(\"OK\");
+			$display(\"%0d OK\", $time);
         #1
         tick = ~tick;
         #1
         tick = ~tick;
-        ", o_size = out_tbl.len(), o = output, i_size = in_tbl.len(), i = input);
+        ", o_size = output.len(), o = output, i_size = input.len(), i = input);
 
     step
 }
@@ -187,9 +200,11 @@ impl Test {
                 let sim_pos = BlockPos::from_str(&sim_blocks[i]).unwrap();
                 if sim_pos == intf_pos {
                     table.push(i);
+                    break;
                 }
             }
         }
+        table.reverse();
         table
     }
 }

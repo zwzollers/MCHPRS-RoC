@@ -1,0 +1,23 @@
+{
+  "name": "comparator initialization",
+  "description": "test that comparators connected to themselves work properly",
+  "inputs": [
+    "1,2,1",
+    "3,2,3"
+  ],
+  "outputs": [
+    "5,2,1"
+  ],
+  "tests": [
+    {
+      "description": "test that the output toggles with a constant input",
+      "procedure": [
+        "0: 00 1",
+        "1: 00 1",
+        "2: 01 1",
+        "3: 01 1",
+        "4: 01 0"
+      ]
+    }
+  ]
+}

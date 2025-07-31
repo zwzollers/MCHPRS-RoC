@@ -27,11 +27,12 @@ impl<W: World> Pass<W> for DiscreteComparators {
                     match output {
                         NodeType::Repeater {..} |
                         NodeType::Torch |
-                        NodeType::Lamp => {
+                        NodeType::Lamp | 
+                        NodeType::Trapdoor=> {
                             states |= 0x1 << weight.ss;
                         }
                         NodeType::Comparator {..} => {
-                            states |= 0xFFFF << weight.ss;
+                            states |= 0x7FFF >> weight.ss;
                         }
                         _ => {} 
                     } 

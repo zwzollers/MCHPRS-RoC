@@ -1,0 +1,17 @@
+{
+  "name": "comparator subtract constant output",
+  "description": "test that a barrel constant through a subtract comparator can power an output",
+  "inputs": [
+  ],
+  "outputs": [
+    "3,2,1"
+  ],
+  "tests": [
+    {
+      "description": "test that the output is on",
+      "procedure": [
+        "0:  1"
+      ]
+    }
+  ]
+}

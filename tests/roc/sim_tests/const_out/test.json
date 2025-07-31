@@ -1,0 +1,17 @@
+{
+  "name": "constant test",
+  "description": "test that a constant can power an output",
+  "inputs": [
+  ],
+  "outputs": [
+    "2,1,1"
+  ],
+  "tests": [
+    {
+      "description": "test that the output is on",
+      "procedure": [
+        "0:  1"
+      ]
+    }
+  ]
+}
