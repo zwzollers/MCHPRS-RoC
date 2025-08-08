@@ -27,6 +27,10 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
         let id = nodeid.index();
         let state = node.state.powered;
 
+        if !node.block.is_none() {
+            verilog.push_str(&format!("//block pos {},{},{}\n", node.block.unwrap().0.x, node.block.unwrap().0.y, node.block.unwrap().0.z));
+        }
+
         match node.ty {
             NodeType::Lever | NodeType::PressurePlate | NodeType::Button => {
                 verilog.push_str(&format!("\twire w{id} = inputs[{input_id}];\n"));
@@ -34,7 +38,8 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
             }
             NodeType::Lamp | NodeType::Trapdoor => {
                 verilog.push_str(&format!("\tassign outputs[{output_id}] = ({});\n", 
-                    get_inputs_str(graph, id, Some(LinkType::Default))));
+                    get_inputs_str(graph, id, Some(LinkType::Default)))
+                );
                 output_id += 1;
             }
             NodeType::Repeater { delay, facing_diode: _ } => {
@@ -53,7 +58,7 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
             NodeType::Torch => {
                 verilog.push_str(&format!("\twire w{};\n", id));
                 verilog.push_str(&format!("\ttorch #(.state(1'b{})) c{} (.i_clk(tick), .i_in({}), .o_out(w{}));\n", 
-                    if state {1} else {0},
+                    if state {0} else {1},
                     id,
                     get_inputs_str(graph, id, Some(LinkType::Default)),
                     id
@@ -95,7 +100,7 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                             }
                         }
                         NodeType::Comparator { mode, far_input, facing_diode, states } => {
-                            println!("0b{:b} {:?}", states.unwrap(), states_iter(states.unwrap()));
+                            //println!("0b{:b} {:?}", states.unwrap(), states_iter(states.unwrap()));
                             for idx in states_iter(states.unwrap()) {
                                 if idx + dist as u8 >= 15 {
                                     continue;
@@ -121,9 +126,14 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                     }
                 }
 
-                
+                if let Some(far_input_ss) = far_input {
+                    b_const = (15 - far_input_ss) as usize;
+                    for i in 1..16 {
+                        b_inputs[i].clear();
+                    }
+                }
 
-                //println!("states: {:b}, inputs: {b_const},{b_inputs:#?} | {s_const}, {s_inputs:#?}", states.unwrap());
+                println!("states: {:b}, inputs: {b_const},{b_inputs:?} | {s_const}, {s_inputs:?}", states.unwrap());
 
                 let mut b_size = 0;
                 let mut b_table: Vec<u8> = Vec::new();
@@ -213,7 +223,7 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                                 let b_dist = b_table[b];
 
                                 if b_dist + o_dist >= 15 {
-                                    println!("o:{o_dist} b:{b_dist} {b_dist} + {o_dist} >= 15");
+                                    //println!("o:{o_dist} b:{b_dist} {b_dist} + {o_dist} >= 15");
                                     continue;
                                 }
 
@@ -221,11 +231,11 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                                     let s_dist = s_table[s];
 
                                     if s_dist >= b_dist {
-                                        println!("o:{o_dist} b:{} s:{} adding to lut", b_size-b-1, s_size-s);
+                                        //println!("o:{o_dist} b:{} s:{} adding to lut", b_size-b-1, s_size-s);
                                         o_lut[o_cnt].push(((b_size-b-1) as u8, (s_size-s) as u8));
                                         break 'b;
                                     }
-                                    println!("o:{o} b:{b} s:{s} {s_dist} <= {b_dist} + {o_dist}");
+                                    //println!("o:{o} b:{b} s:{s} {s_dist} <= {b_dist} + {o_dist}");
                                 }
                             }
                             if o_cnt == 0 {
@@ -235,19 +245,23 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                         }
                     }
                     ComparatorMode::Subtract => {
-                        for o in 0..o_size {
+                        let mut o_cnt = 0;
+                        for o in states_iter(states.unwrap()) {
+                            if o >= 15 {
+                                continue;
+                            }
                             let o_dist = o as u8;
                             'b: for b in 0..b_size {
                                 let b_dist = b_table[b];
 
-                                for i in 0..o_lut[o].len() {
-                                    if o_lut[o][i].0 as usize == b_size-b-1 {
+                                for i in 0..o_lut[o_cnt].len() {
+                                    if o_lut[o_cnt][i].0 as usize == b_size-b-1 {
                                         continue 'b;
                                     }
                                 }
 
                                 if b_dist + o_dist >= 15 {
-                                    println!("\to:{o} b:{b} b_dist + o_dist >= 15");
+                                    //println!("\to:{o} b:{b} b_dist + o_dist >= 15");
                                     continue;
                                 }
 
@@ -255,25 +269,26 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                                     let s_dist = s_table[s];
 
                                     if s_dist > b_dist + o_dist {
-                                        for i in 0..o_lut[o].len() {
-                                            if o_lut[o][i].1 as usize == s_size-s {
-                                                println!("\to:{o} b:{} s:{} removing", o_lut[o][i].0, o_lut[o][i].1);
-                                                o_lut[o].remove(i);
+                                        for i in 0..o_lut[o_cnt].len() {
+                                            if o_lut[o_cnt][i].1 as usize == s_size-s {
+                                                //println!("\to:{o} b:{} s:{} removing", o_lut[o][i].0, o_lut[o][i].1);
+                                                o_lut[o_cnt].remove(i);
                                                 break;
                                             }
                                         }
-                                        o_lut[o].push(((b_size-b-1) as u8, (s_size-s) as u8));
+                                        o_lut[o_cnt].push(((b_size-b-1) as u8, (s_size-s) as u8));
                                         println!("\to:{o} b:{} s:{} adding to lut", b_size-b-1, s_size-s);
                                         break;
                                     }
-                                    println!("\to:{o} b:{b} s:{s} {s_dist} <= {b_dist} + {o_dist}");
+                                    //println!("\to:{o} b:{b} s:{s} {s_dist} <= {b_dist} + {o_dist}");
                                 }
                             }
+                            o_cnt += 1;
                         }
                     }
                 }
 
-                println!("lut: {o_lut:?}");
+                //println!("lut: {o_lut:?}");
 
                 for i in 0..o_size {
                     if (o_lut[(o_size-i-1) as usize].len() == 0 || mode == ComparatorMode::Compare) && i > 0 {
@@ -297,13 +312,13 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                 verilog.push_str("1'b1\n\t};\n");
 
                 let mut init_str = "".to_string();
-                let s = states.unwrap() >> node.state.output_strength;
+                let s = states.unwrap() as u32 >> (16 - node.state.output_strength);
 
                 println!("{} {:b}", node.state.output_strength, s);
 
-                for i in 0..o_size {
+                for i in (0..o_size).rev() {
                     
-                    if i < s.count_ones() as usize {
+                    if i >= s.count_ones() as usize {
                         init_str.push('0');
                     }
                     else {
@@ -311,10 +326,13 @@ pub fn generate_verilog(graph: &CompileGraph, path: &Path) {
                     }
                 }
 
+                init_str.push('1');
+
                 verilog.push_str(&format!("\twire[{}:0] w{};\n", o_size, id));
-                verilog.push_str(&format!("\tcomp #(.size({}), .state({}'d0)) c{} (.i_clk(tick), .i_in(w{}_o), .o_out(w{}));\n",
+                verilog.push_str(&format!("\tcomp #(.size({}), .state({}'b{})) c{} (.i_clk(tick), .i_in(w{}_o), .o_out(w{}));\n",
                     o_size+1,
                     o_size+1,
+                    init_str,
                     id,
                     id,
                     id
@@ -357,15 +375,15 @@ fn states_iter(states: u16) -> Vec<u8> {
 }
 
 fn get_inputs_str (graph: &CompileGraph, node: usize, ty: Option<LinkType>) -> String {
-    let mut inputs = "".to_owned();
+    let mut inputs = "1'b0|".to_owned();
     for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Incoming) {
         let weight = edge.weight(); 
         if ty == None || weight.ty == ty.unwrap() {
             let src = edge.source();
-            let src_node = &graph[src].ty;
+            let src_node = &graph[src];
             let weight = edge.weight();
 
-            match src_node {
+            match src_node.ty {
                 NodeType::Repeater {..} |
                 NodeType::Button |
                 NodeType::Lever | 
@@ -377,7 +395,9 @@ fn get_inputs_str (graph: &CompileGraph, node: usize, ty: Option<LinkType>) -> S
                     inputs.push_str(&format!("w{}[{}]|", src.index(), ss_to_idx(states.unwrap(), 14-weight.ss)));
                 }
                 NodeType::Constant => {
-                    inputs.push_str("1'b1|");
+                    if src_node.state.output_strength > weight.ss {
+                        inputs.push_str("1'b1|");
+                    }
                 }
                 _ => {
                     println!("not input {src_node:?}");
@@ -401,7 +421,7 @@ fn is_locking (graph: &CompileGraph, node: usize) -> bool {
 fn is_locker (graph: &CompileGraph, node: usize) -> bool {
     for edge in graph.edges_directed((node as u32).into(), petgraph::Direction::Outgoing) {
         let link = &graph[edge.id()];
-        if link.ty == LinkType::Side {return true}
+        if link.ty == LinkType::Side && matches!(graph[edge.target()].ty, NodeType::Repeater { .. }) {return true}
     }
     false
 }

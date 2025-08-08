@@ -130,71 +130,67 @@ module uart_tx #(
     reg [1:0]   r_state     = s_IDLE;
 
     reg         r_tx        = 1'b1;
-    reg         r_start     = 1'b0;
+    reg [3:0]   r_bit       = 4'd0;
+    reg [7:0]   r_data      = 8'd0;
+    reg [7:0]   r_baud_cnt  = 8'd0;
+
+    reg         r_done      = 1'b0;
+
     reg         r_prev_start= 1'b0;
-    reg         r_started   = 1'b0;
-
-    reg [2:0]   r_bit       = 0;
-    reg [7:0]   r_data      = 0;
-
-    reg         r_done      = 0;
-    reg         r_prev_done = 0;
-
-    wire baud_clk;
-	clk_div #(.SIZE(4), .COUNT(10)) baud_clk_div (.clk_in(i_clk), .clk_out(baud_clk));
+    wire        start;
+    assign start = ~r_prev_start & i_start;
 
     always @(posedge i_clk) begin
-        if (~r_prev_start & i_start & ~r_started) begin
-            r_start                 <= 1'b1;
-            r_data                  <= i_data;
-        end
-        else if (r_started) begin
-            r_start                 <= 1'b0;
-        end
-        r_prev_start                <= i_start;
-    end
-
-    always @(posedge i_clk) begin
-        r_prev_done                 <= r_done;
-    end
-
-    always @(posedge baud_clk) begin
         case (r_state)
             s_IDLE : begin
                 r_done              <= 1'b0;
-                r_bit               <= 0;
+                r_bit               <= 4'd0;
+                r_baud_cnt          <= 8'd0;
 
-                if (r_start == 1'b1) begin
+                if (start == 1'b1) begin
+                    r_data          <= i_data;
                     r_state         <= s_START;
-                    r_started       <= 1'b1;
                 end
                 else
                     r_state         <= s_IDLE;
             end
 
             s_START : begin
-                r_tx                <= 1'b0;
-                r_started           <= 1'b0;
-                r_state             <= s_DATA;
+                if (r_baud_cnt >= BAUD_DIVIDER_COUNT-1) begin
+                    r_baud_cnt      <= 8'd0;
+                    r_state         <= s_DATA;
+                end
+                else
+                    r_tx            <= 1'b0;
+                    r_baud_cnt      <= r_baud_cnt + 1;
             end
 
             s_DATA : begin
-                r_tx                <= r_data[r_bit];
-                r_started           <= 1'b0;
-                
-                if (r_bit == 3'd7) begin
-                    r_state         <= s_STOP;
+                if (r_baud_cnt >= BAUD_DIVIDER_COUNT-1) begin
+
+                    if (r_bit == 4'd8) begin
+                        r_state     <= s_STOP;
+                    end
+                    else begin
+                        r_bit       <= r_bit + 1;
+                        r_tx        <= r_data[r_bit];
+                        r_baud_cnt  <= 8'd0;
+                    end
                 end
-                else begin
-                    r_bit           <= r_bit + 1;
-                end
+                else
+                    r_baud_cnt      <= r_baud_cnt + 1;
+            
             end
                 
             s_STOP : begin
-                r_tx                <= 1'b1;
-                r_bit               <= 0;
-                r_done              <= 1'b1;
-                r_state             <= s_IDLE;
+                if (r_baud_cnt >= BAUD_DIVIDER_COUNT*2) begin
+                    r_baud_cnt      <= 8'd0;
+                    r_done          <= 1'b1;
+                    r_state         <= s_IDLE;
+                end
+                else
+                    r_tx            <= 1'b1;
+                    r_baud_cnt      <= r_baud_cnt + 1;
             end           
 
             default :
@@ -204,6 +200,6 @@ module uart_tx #(
     end   
 
     assign o_tx     = r_tx;
-    assign o_done   = ~r_prev_done & r_done;
+    assign o_done   = r_done;
 
 endmodule

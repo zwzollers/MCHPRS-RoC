@@ -167,10 +167,10 @@ module command_controller #(
                         r_state         <= s_END;
                     end 
                     CMD_LOAD_ROM    : begin
-
+                        r_state         <= s_END;
                     end 
                     CMD_FAIL_ACK    : begin
-
+                        r_state         <= s_END;
                     end
                     default         : begin
                         r_state         <= s_FAILSAFE;
@@ -193,13 +193,18 @@ module command_controller #(
             end
 
             s_FAILSAFE    : begin
-                if (tx_done) begin
-                    r_tx_start          <= 1'b1;
-                    r_tx_data           <= 8'h5A;
-                end
-                else begin
-                    r_tx_start          <= 1'b0;
-                end
+                r_tx_data               <= 8'd0;
+                r_tx_start              <= 1'b0;
+                r_output_i              <= 24'd0;
+                r_cmd_i                 <= 3'd0;
+                r_state                 <= s_IDLE;
+                // if (tx_done) begin
+                //     r_tx_start          <= 1'b1;
+                //     r_tx_data           <= 8'h5A;
+                // end
+                // else begin
+                //     r_tx_start          <= 1'b0;
+                // end
             end
 
             default       : begin

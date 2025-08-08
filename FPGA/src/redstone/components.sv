@@ -46,7 +46,10 @@ module repeater #(
 		else if (lockable == 1 && t == 1) begin
 			assign o_out = buffer[t-1];
 			always @(posedge i_clk) begin
-				buffer <= (i_lock & buffer) | (!i_lock & i_in);
+				if (~i_lock)
+					buffer <= i_in;
+				else 
+					buffer <= buffer;
 			end
 		end
 		

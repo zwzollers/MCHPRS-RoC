@@ -128,6 +128,7 @@ fn parse_step(step: &String, in_tbl: &Vec<usize>, out_tbl: &Vec<usize>) -> Strin
 
     let step = format!("
         inputs = {i_size}'b{i};
+        #1
         if (outputs !== {o_size}'b{o}) begin
             $display(\"FAILURE {o_size}'b%b != {o_size}'b{o}\", outputs);
             $fatal;

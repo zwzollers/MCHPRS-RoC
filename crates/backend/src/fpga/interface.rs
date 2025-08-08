@@ -80,13 +80,16 @@ impl Interface {
         self.serial_conn.read(&mut response); 
 
         if response != bytes {
-            //println!("CMD doesnt match");
+            println!("{response:?} != {bytes:?} CMD doesnt match");
             return false;
         }
 
         match cmd {
-            FPGACommand::GetOutupts => 
-                self.serial_conn.read(&mut self.outputs),                      
+            FPGACommand::GetOutupts => {
+                let ret = self.serial_conn.read(&mut self.outputs);
+                self.serial_conn.clear_buffer();
+                ret
+            }                      
             _ => false
         }        
     }

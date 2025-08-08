@@ -10,7 +10,7 @@
   ],
   "tests": [
     {
-      "description": "test that the output toggles with a constant input",
+      "description": "test that the comparator state is set correctly",
       "procedure": [
         "0: 00 1",
         "1: 00 1",
