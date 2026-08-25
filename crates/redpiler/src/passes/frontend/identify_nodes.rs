@@ -46,6 +46,8 @@ impl<W: World> Pass<W> for IdentifyNodes {
                 &mut second_pass,
                 ignore_wires,
                 options.wire_dot_out,
+                options.illegal_states_out,
+                options.wire_cross_out,
                 plot,
                 pos,
             );
@@ -71,6 +73,8 @@ fn for_pos<W: World>(
     second_pass: &mut FxHashSet<BlockPos>,
     ignore_wires: bool,
     wire_dot_out: bool,
+    illegal_states_out: bool,
+    wire_cross_out: bool,
     world: &W,
     pos: BlockPos,
 ) {
@@ -88,7 +92,13 @@ fn for_pos<W: World>(
 
     let is_input = ty.is_normally_input();
     let is_output = ty.is_normally_output()
-        || matches!(block, Block::RedstoneWire(wire) if wire_dot_out && wire::is_dot(wire));
+        || matches!(
+            block,
+            Block::RedstoneWire(wire) if
+                wire_dot_out && wire::is_dot(wire) ||
+                illegal_states_out && wire::is_illegal(wire) ||
+                wire_cross_out && wire::is_cross(wire)
+        );
 
     if ignore_wires && ty == NodeType::Wire && !(is_input | is_output) {
         return;

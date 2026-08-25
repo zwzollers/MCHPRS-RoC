@@ -207,6 +207,15 @@ pub fn is_cross(wire: RedstoneWire) -> bool {
         && wire.west == RedstoneWireSide::Side
 }
 
+pub fn is_illegal(wire: RedstoneWire) -> bool {
+    let sides = [wire.north, wire.south, wire.east, wire.west];
+    sides
+        .into_iter()
+        .filter(|&side| side == RedstoneWireSide::None)
+        .count()
+        == 3
+}
+
 fn max_wire_power(wire_power: u8, world: &impl World, pos: BlockPos) -> u8 {
     let block = world.get_block(pos);
     if let Block::RedstoneWire(wire) = block {

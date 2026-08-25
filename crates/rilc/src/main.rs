@@ -48,10 +48,16 @@ enum Command {
         /// Consider a redstone dot to be an output block (for color screens)
         #[arg(long, short = 'd')]
         wire_dot_out: bool,
+        /// Consider "illegal" redstone wires to be an output block (for sprite screens)
+        #[arg(long, short = 'l')]
+        illegal_states_out: bool,
+        /// Consider a redstone cross to be an output block (for sprite screens without illegal wire states)
+        #[arg(long, short = 'c')]
+        wire_cross_out: bool,
         /// Print out the RIL circuit after every redpiler pass
         #[arg(long)]
         print_after_all: bool,
-        /// A comma seperated list of passes to run. This can only be used by the rilc driver.
+        /// A comma separated list of passes to run. This can only be used by the rilc driver.
         #[arg(long)]
         passes: Option<String>,
     },
@@ -152,6 +158,8 @@ fn main() {
             export,
             io_only,
             wire_dot_out,
+            illegal_states_out,
+            wire_cross_out,
             print_after_all,
             passes,
         } => {
@@ -162,6 +170,8 @@ fn main() {
                 update: false,
                 export_dot_graph: false,
                 wire_dot_out,
+                illegal_states_out,
+                wire_cross_out,
                 print_after_all,
                 print_before_backend: false,
                 backend_variant: Default::default(),
