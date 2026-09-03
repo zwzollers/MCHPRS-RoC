@@ -3,10 +3,12 @@ use crate::player::{Gamemode, PacketSender, PlayerPos};
 use crate::plot::data::sleep_time_for_tps;
 use crate::profile::PlayerProfile;
 use crate::server::{get_version_string, Message};
+use mchprs_backend_manager::PlotBackend;
 use mchprs_blocks::items::ItemStack;
 use mchprs_network::packets::clientbound::{
     CCommands, CCommandsNode as Node, CDeclareCommandsNodeParser as Parser, ClientBoundPacket,
 };
+use mchprs_backend_lib::BackendMessage;
 use mchprs_network::packets::PacketEncoder;
 use mchprs_network::PlayerPacketSender;
 use mchprs_redpiler::CompilerOptions;
@@ -212,6 +214,41 @@ impl Plot {
         }
     }
 
+    fn handle_backend_command(&mut self, player: usize, command: &str, args: &[&str]) {
+        match command {
+            "new" | "n" => {
+                let bknd = PlotBackend::new(args[0].into(), args[1].into(), self.backend_chnl.0.clone());
+
+                self.backends.insert(args[0].into(), bknd);
+            }
+            "options" | "o" => {
+                
+            }
+            "compile" | "c" => {
+                
+            }
+            "run" | "r" => {
+                
+            }
+            "stop" | "s" => {
+                
+            }
+            "reset" | "rs" => {
+                
+            }
+            "delete" | "d" => {
+                
+            }
+            "status" | "sts" => {
+                if let Some(bknd) = self.backends.get(args[0]) {
+                    let _ = bknd.tx.send(BackendMessage::GetStatus(self.players[player].username.clone()));
+                }
+                self.players[player].send_error_message("Invalid backend name")
+            }
+            _ => self.players[player].send_error_message("Invalid argument for /bknd"),
+        }
+    }
+
     // Returns true if packets should stop being handled
     pub(super) fn handle_command(
         &mut self,
@@ -401,6 +438,14 @@ impl Plot {
                 }
                 let command = args.remove(0);
                 self.handle_redpiler_command(player, command, &args);
+            }
+            "bknd" | "b" => {
+                if args.is_empty() {
+                    self.players[player].send_error_message("Invalid number of arguments!");
+                    return false;
+                }
+                let command = args.remove(0);
+                self.handle_backend_command(player, command, &args);
             }
             "speed" => {
                 if args.len() != 1 {

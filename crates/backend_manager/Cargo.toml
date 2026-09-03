@@ -1,0 +1,17 @@
+[package]
+name = "mchprs_backend_manager"
+authors.workspace = true
+description.workspace = true
+edition.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+readme.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+include.workspace = true
+
+[dependencies]
+mchprs_backend_lib = { path = "../backend_lib" }
+backend_redpiler = { path = "../../backends/redpiler" }
+enum_delegate = "0.2.0"

@@ -14,6 +14,8 @@ use crate::server::{BroadcastMessage, Message, PrivMessage};
 use crate::utils::HyphenatedUUID;
 use anyhow::Error;
 use bus::BusReader;
+use mchprs_backend_lib::BackendMessage;
+use mchprs_backend_manager::PlotBackend;
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::items::Item;
@@ -29,9 +31,9 @@ use mchprs_world::{TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
 use scoreboard::RedpilerState;
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
@@ -61,6 +63,8 @@ pub struct Plot {
     pub players: Vec<Player>,
     pub redpiler: Compiler,
 
+    backends: HashMap<String, PlotBackend>,
+    backend_chnl: (Sender<BackendMessage>, Receiver<BackendMessage>),
     // Thread communication
     message_receiver: BusReader<BroadcastMessage>,
     message_sender: Sender<Message>,
@@ -920,6 +924,18 @@ impl Plot {
                 }
             }
         }
+         while let Ok(message) = self.backend_chnl.1.try_recv() {
+            match message {
+                BackendMessage::Status(uname, sts) => {
+                    for player in &self.players {
+                        if player.username == uname {
+                            player.send_error_message(sts.as_str());
+                        }
+                    }
+                }
+                _ => ()
+            }
+        }
     }
 
     /// Remove players outside of the plot
@@ -1152,6 +1168,8 @@ impl Plot {
             async_rt: Plot::create_async_rt(),
             scoreboard: Default::default(),
             world,
+            backends: Default::default(),
+            backend_chnl: channel(),
         }
     }
 
