@@ -33,7 +33,7 @@ use scoreboard::RedpilerState;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
@@ -924,7 +924,7 @@ impl Plot {
                 }
             }
         }
-         while let Ok(message) = self.backend_chnl.1.try_recv() {
+        while let Ok(message) = self.backend_chnl.1.try_recv() {
             match message {
                 BackendMessage::Status(uname, sts) => {
                     for player in &self.players {
@@ -933,7 +933,17 @@ impl Plot {
                         }
                     }
                 }
-                _ => ()
+                BackendMessage::Delete(name) => {
+                    if let Some(bknd) = self.backends.remove(&name) {
+                        let _ = bknd.manager_thread.join();
+                    }
+                }
+                BackendMessage::InitCompile(name, cb) => {
+                    if let Some(bknd) = self.backends.get_mut(&name) {
+                        bknd.compile_init_fn = Some(cb);
+                    }
+                }
+                _ => (),
             }
         }
     }

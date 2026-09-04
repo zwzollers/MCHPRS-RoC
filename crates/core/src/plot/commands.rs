@@ -3,12 +3,12 @@ use crate::player::{Gamemode, PacketSender, PlayerPos};
 use crate::plot::data::sleep_time_for_tps;
 use crate::profile::PlayerProfile;
 use crate::server::{get_version_string, Message};
+use mchprs_backend_lib::BackendMessage;
 use mchprs_backend_manager::PlotBackend;
 use mchprs_blocks::items::ItemStack;
 use mchprs_network::packets::clientbound::{
     CCommands, CCommandsNode as Node, CDeclareCommandsNodeParser as Parser, ClientBoundPacket,
 };
-use mchprs_backend_lib::BackendMessage;
 use mchprs_network::packets::PacketEncoder;
 use mchprs_network::PlayerPacketSender;
 use mchprs_redpiler::CompilerOptions;
@@ -16,7 +16,7 @@ use mchprs_save_data::plot_data::{Tps, WorldSendRate};
 use mchprs_text::TextComponent;
 use std::ops::Add;
 use std::str::FromStr;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::time::Instant;
 use tracing::{debug, info, warn};
 
@@ -217,33 +217,36 @@ impl Plot {
     fn handle_backend_command(&mut self, player: usize, command: &str, args: &[&str]) {
         match command {
             "new" | "n" => {
-                let bknd = PlotBackend::new(args[0].into(), args[1].into(), self.backend_chnl.0.clone());
+                let bknd =
+                    PlotBackend::new(args[0].into(), args[1].into(), self.backend_chnl.0.clone());
 
                 self.backends.insert(args[0].into(), bknd);
             }
-            "options" | "o" => {
-                
-            }
+            "options" | "o" => {}
             "compile" | "c" => {
-                
+                if let Some(bknd) = self.backends.get(args[0]) {
+                    let _ = bknd.tx.send(BackendMessage::Reset);
+
+                    let compile_input = if let Some(compile_fn) = bknd.compile_init_fn {
+                        Some(compile_fn(&self.world))
+                    } else {
+                        None
+                    };
+                    let _ = bknd.tx.send(BackendMessage::Compile(compile_input));
+                }
             }
-            "run" | "r" => {
-                
-            }
-            "stop" | "s" => {
-                
-            }
-            "reset" | "rs" => {
-                
-            }
-            "delete" | "d" => {
-                
-            }
+            "run" | "r" => {}
+            "stop" | "s" => {}
+            "reset" | "rs" => {}
+            "delete" | "d" => {}
             "status" | "sts" => {
                 if let Some(bknd) = self.backends.get(args[0]) {
-                    let _ = bknd.tx.send(BackendMessage::GetStatus(self.players[player].username.clone()));
+                    let _ = bknd.tx.send(BackendMessage::GetStatus(
+                        self.players[player].username.clone(),
+                    ));
+                } else {
+                    self.players[player].send_error_message("Invalid backend name");
                 }
-                self.players[player].send_error_message("Invalid backend name")
             }
             _ => self.players[player].send_error_message("Invalid argument for /bknd"),
         }
@@ -513,7 +516,7 @@ impl Plot {
 
                 let container_ty = match args[0].parse() {
                     Ok(ty) => ty,
-                    Err(()) => {
+                    Err(_) => {
                         self.players[player].send_error_message(
                             "Container type must be one of [barrel, furnace, hopper]",
                         );

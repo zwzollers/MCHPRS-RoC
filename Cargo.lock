@@ -1331,6 +1331,7 @@ name = "mchprs_backend_lib"
 version = "0.5.2-dev"
 dependencies = [
  "enum_delegate",
+ "mchprs_world",
 ]
 
 [[package]]
@@ -1376,6 +1377,7 @@ dependencies = [
  "bus",
  "byteorder",
  "ctrlc",
+ "enum_delegate",
  "hematite-nbt",
  "hmac",
  "itertools",
