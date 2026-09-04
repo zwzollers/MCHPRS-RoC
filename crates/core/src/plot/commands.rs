@@ -16,7 +16,7 @@ use mchprs_save_data::plot_data::{Tps, WorldSendRate};
 use mchprs_text::TextComponent;
 use std::ops::Add;
 use std::str::FromStr;
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 use std::time::Instant;
 use tracing::{debug, info, warn};
 

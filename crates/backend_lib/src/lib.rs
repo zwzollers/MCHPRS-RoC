@@ -1,5 +1,6 @@
-use std::any::Any;
 pub use mchprs_world::World;
+pub use mchprs_blocks::{BlockPos, blocks::Block};
+use std::any::Any;
 
 #[enum_delegate::register]
 pub trait Backend {
@@ -24,10 +25,11 @@ pub trait Backend {
 
     fn status(&self) -> String;
 
+    fn flush(&mut self) -> Vec<WorldDiff>;
+
     // fn reset(&mut self);
     // fn can_edit(&self) -> EditMode;
     // fn edit(Vec<WorldDiff>) -> Bool;
-    // fn flush() -> Vec<WorldDiff>;
     // fn set_options(&mut self, options: Options);
     // fn save(&mut self, path: &Path);
     // fn load(&mut self, path: &Path) -> bool;
@@ -53,9 +55,16 @@ pub enum BackendMessage {
     GetStatus(String),
     Status(String, String),
     Reset,
+    GetFlush,
+    Flush(Vec<WorldDiff>),
 }
 
 pub struct CompileStep {
     pub cur: u32,
     pub total: Option<u32>,
+}
+
+pub struct WorldDiff {
+    pub pos: BlockPos,
+    pub id: u32,
 }

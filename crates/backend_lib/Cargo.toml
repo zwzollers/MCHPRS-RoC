@@ -13,4 +13,5 @@ include.workspace = true
 
 [dependencies]
 mchprs_world = { path = "../world" }
+mchprs_blocks = { path = "../blocks" }
 enum_delegate = "0.2.0"

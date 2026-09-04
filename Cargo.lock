@@ -1331,6 +1331,7 @@ name = "mchprs_backend_lib"
 version = "0.5.2-dev"
 dependencies = [
  "enum_delegate",
+ "mchprs_blocks",
  "mchprs_world",
 ]
 

@@ -13,6 +13,7 @@ impl Backend for Backend1 {
     }
 
     fn init_compile_cb(&mut self) -> Option<InitCompileFn> {
+        println!("test");
         Some(|w: &dyn World| -> Box<ThreadAny> {
             println!("Running Callback");
             Box::new(5)
@@ -37,6 +38,10 @@ impl Backend for Backend1 {
     fn status(&self) -> String {
         "hello from backend1".into()
     }
+    
+    fn flush(&mut self) -> Vec<WorldDiff>  {
+        vec![WorldDiff{pos: BlockPos { x: 50, y: 50, z: 50 }, id: Block::GrayConcrete.get_id()}]
+    }
 }
 
 #[derive(Default)]
@@ -59,5 +64,9 @@ impl Backend for Backend2 {
 
     fn status(&self) -> String {
         "hello from backend2".into()
+    }
+    
+    fn flush(&mut self) -> Vec<WorldDiff>  {
+        todo!()
     }
 }

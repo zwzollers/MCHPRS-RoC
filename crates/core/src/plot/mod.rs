@@ -943,6 +943,11 @@ impl Plot {
                         bknd.compile_init_fn = Some(cb);
                     }
                 }
+                BackendMessage::Flush(diff) => {
+                    for change in diff {
+                        self.world.set_block_raw(change.pos, change.id);
+                    }
+                }
                 _ => (),
             }
         }
@@ -1071,6 +1076,9 @@ impl Plot {
             if time_since_last_world_send > world_send_rate {
                 self.last_world_send_time = now;
                 self.world.flush_block_changes();
+                for (_, bknd) in &self.backends {
+                    let _ = bknd.tx.send(BackendMessage::GetFlush);
+                }
             }
         } else {
             self.timings.set_ticking(false);

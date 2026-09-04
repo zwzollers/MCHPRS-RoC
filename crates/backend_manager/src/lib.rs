@@ -31,13 +31,14 @@ impl PlotBackend {
 }
 
 #[enum_delegate::implement(Backend,
-    trait Backend {
+    pub trait Backend {
         fn init(&mut self) {}
         fn heartbeat(&mut self) {}
         fn delete(&mut self) {}
+        fn init_compile_cb(&mut self) -> Option<InitCompileFn> {
+            None
+        }
         fn compile(&mut self, step: Option<usize>) -> (usize, usize);
-
-
 
         fn tick(&mut self);
         fn tickn(&mut self, ticks: usize) {
@@ -52,13 +53,14 @@ impl PlotBackend {
 
         fn status(&self) -> String;
 
+        fn flush(&mut self) -> Vec<WorldDiff>;
+
         // fn reset(&mut self);
-        //fn can_edit(&self) -> EditMode;
+        // fn can_edit(&self) -> EditMode;
         // fn edit(Vec<WorldDiff>) -> Bool;
-        // fn flush() -> Vec<WorldDiff>;
         // fn set_options(&mut self, options: Options);
-        //fn save(&mut self, path: &Path);
-        //fn load(&mut self, path: &Path) -> bool;
+        // fn save(&mut self, path: &Path);
+        // fn load(&mut self, path: &Path) -> bool;
     }
 )]
 enum Backends {
@@ -155,13 +157,16 @@ impl BackendManager {
                 self.compile_step.cur = 0;
                 self.compile_step.total = None;
                 self.compile_input = data;
-                println!("{:?}", self.compile_input);
             }
             BackendMessage::GetStatus(uname) => {
                 let _ = self
                     .channel
                     .0
                     .send(BackendMessage::Status(uname, self.bknd.status()));
+            }
+            BackendMessage::GetFlush => {
+                let diff = self.bknd.flush();
+                let _ = self.channel.0.send(BackendMessage::Flush(diff));
             }
             _ => (),
         }
