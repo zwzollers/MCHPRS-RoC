@@ -14,7 +14,7 @@ use crate::server::{BroadcastMessage, Message, PrivMessage};
 use crate::utils::HyphenatedUUID;
 use anyhow::Error;
 use bus::BusReader;
-use mchprs_backend_lib::BackendMessage;
+use mchprs_backend_lib::*;
 use mchprs_backend_manager::PlotBackend;
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
@@ -33,7 +33,8 @@ use scoreboard::RedpilerState;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::sync::mpsc::{channel, Receiver, Sender};
+//use std::sync::mpsc::{channel, Receiver, Sender};
+use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
@@ -63,8 +64,11 @@ pub struct Plot {
     pub players: Vec<Player>,
     pub redpiler: Compiler,
 
-    backends: HashMap<String, PlotBackend>,
-    backend_chnl: (Sender<BackendMessage>, Receiver<BackendMessage>),
+    // Redstone Backends
+    backends: Vec<PlotBackend>,
+    backend_sender: Sender<BackendMessage>,
+    plot_receiver: Receiver<BackendMessage>,
+
     // Thread communication
     message_receiver: BusReader<BroadcastMessage>,
     message_sender: Sender<Message>,
@@ -924,22 +928,18 @@ impl Plot {
                 }
             }
         }
-        while let Ok(message) = self.backend_chnl.1.try_recv() {
+        while let Ok(message) = self.plot_receiver.try_recv() {
             match message {
-                BackendMessage::Status(uname, sts) => {
-                    for player in &self.players {
-                        if player.username == uname {
-                            player.send_error_message(sts.as_str());
-                        }
+                BackendMessage::Status(name, sts) => {
+                    if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == name) {
+                        bknd.status = sts;
                     }
                 }
-                BackendMessage::Delete(name) => {
-                    if let Some(bknd) = self.backends.remove(&name) {
-                        let _ = bknd.manager_thread.join();
-                    }
+                BackendMessage::DeleteAck(name) => {
+                    self.backends.retain(|b| b.name != name);
                 }
                 BackendMessage::InitCompile(name, cb) => {
-                    if let Some(bknd) = self.backends.get_mut(&name) {
+                    if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == name) {
                         bknd.compile_init_fn = Some(cb);
                     }
                 }
@@ -1076,8 +1076,8 @@ impl Plot {
             if time_since_last_world_send > world_send_rate {
                 self.last_world_send_time = now;
                 self.world.flush_block_changes();
-                for (_, bknd) in &self.backends {
-                    let _ = bknd.tx.send(BackendMessage::GetFlush);
+                for bknd in &self.backends {
+                    let _ = bknd.tx.send(PlotMessage::Flush);
                 }
             }
         } else {
@@ -1163,6 +1163,7 @@ impl Plot {
         };
         let tps = plot_data.tps;
         let world_send_rate = plot_data.world_send_rate;
+        let (backend_sender, plot_receiver) = unbounded();
         Plot {
             last_player_time: Instant::now(),
             last_update_time: Instant::now(),
@@ -1187,7 +1188,8 @@ impl Plot {
             scoreboard: Default::default(),
             world,
             backends: Default::default(),
-            backend_chnl: channel(),
+            backend_sender,
+            plot_receiver,
         }
     }
 

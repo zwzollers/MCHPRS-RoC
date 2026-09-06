@@ -1,9 +1,13 @@
 use mchprs_backend_lib::*;
 
 #[derive(Default)]
-pub struct Backend1 {}
+pub struct Backend1 {
+    placed: bool,
+}
 impl Backend for Backend1 {
-    fn init(&mut self) {}
+    fn init(&mut self) {
+        self.placed = true
+    }
     fn heartbeat(&mut self) {
         println!("Backend: heartbeat");
     }
@@ -20,43 +24,50 @@ impl Backend for Backend1 {
         })
     }
 
-    fn compile(&mut self, step: Option<usize>) -> (usize, usize) {
-        if step.is_none() {
-            return (0, 10);
-        }
-
-        match step.unwrap() {
-            0 => (0, 10),
-            _ => (0, 0),
-        }
+    fn compile(&mut self, inputs: &Option<Box<ThreadAny>>, step: &mut CompileStep) {
+        step.total = Some(0);
     }
 
     fn tick(&mut self) {
-        todo!()
+        self.placed = !self.placed;
+        //println!("ticked");
     }
 
     fn status(&self) -> String {
         "hello from backend1".into()
     }
-    
-    fn flush(&mut self) -> Vec<WorldDiff>  {
-        vec![WorldDiff{pos: BlockPos { x: 50, y: 50, z: 50 }, id: Block::GrayConcrete.get_id()}]
+
+    fn flush(&mut self) -> Vec<WorldDiff> {
+        if self.placed {
+            vec![WorldDiff {
+                pos: BlockPos {
+                    x: 50,
+                    y: 50,
+                    z: 50,
+                },
+                id: Block::GrayConcrete.get_id(),
+            }]
+        } else {
+            vec![WorldDiff {
+                pos: BlockPos {
+                    x: 50,
+                    y: 50,
+                    z: 50,
+                },
+                id: Block::Air.get_id(),
+            }]
+        }
+    }
+
+    fn edit(&mut self, edits: Vec<WorldDiff>) -> (Vec<WorldDiff>, bool) {
+        todo!()
     }
 }
 
 #[derive(Default)]
 pub struct Backend2 {}
 impl Backend for Backend2 {
-    fn compile(&mut self, step: Option<usize>) -> (usize, usize) {
-        if step.is_none() {
-            return (0, 10);
-        }
-
-        match step.unwrap() {
-            0 => (0, 10),
-            _ => (0, 0),
-        }
-    }
+    fn compile(&mut self, inputs: &Option<Box<ThreadAny>>, step: &mut CompileStep) {}
 
     fn tick(&mut self) {
         todo!()
@@ -65,8 +76,12 @@ impl Backend for Backend2 {
     fn status(&self) -> String {
         "hello from backend2".into()
     }
-    
-    fn flush(&mut self) -> Vec<WorldDiff>  {
+
+    fn flush(&mut self) -> Vec<WorldDiff> {
+        todo!()
+    }
+
+    fn edit(&mut self, edits: Vec<WorldDiff>) -> (Vec<WorldDiff>, bool) {
         todo!()
     }
 }

@@ -3,7 +3,7 @@ use crate::player::{Gamemode, PacketSender, PlayerPos};
 use crate::plot::data::sleep_time_for_tps;
 use crate::profile::PlayerProfile;
 use crate::server::{get_version_string, Message};
-use mchprs_backend_lib::BackendMessage;
+use mchprs_backend_lib::*;
 use mchprs_backend_manager::PlotBackend;
 use mchprs_blocks::items::ItemStack;
 use mchprs_network::packets::clientbound::{
@@ -218,32 +218,67 @@ impl Plot {
         match command {
             "new" | "n" => {
                 let bknd =
-                    PlotBackend::new(args[0].into(), args[1].into(), self.backend_chnl.0.clone());
+                    PlotBackend::new(args[0].into(), args[1].into(), self.backend_sender.clone());
 
-                self.backends.insert(args[0].into(), bknd);
+                self.backends.push(bknd);
             }
             "options" | "o" => {}
             "compile" | "c" => {
-                if let Some(bknd) = self.backends.get(args[0]) {
-                    let _ = bknd.tx.send(BackendMessage::Reset);
+                if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == args[0]) {
+                    let _ = bknd.tx.send(PlotMessage::Reset);
 
                     let compile_input = if let Some(compile_fn) = bknd.compile_init_fn {
                         Some(compile_fn(&self.world))
                     } else {
                         None
                     };
-                    let _ = bknd.tx.send(BackendMessage::Compile(compile_input));
+                    let _ = bknd.tx.send(PlotMessage::Compile(compile_input));
+                } else {
+                    self.players[player].send_error_message("Invalid backend name");
                 }
             }
-            "run" | "r" => {}
-            "stop" | "s" => {}
-            "reset" | "rs" => {}
-            "delete" | "d" => {}
+            "rtps" => {
+                if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == args[0]) {
+                    if let Ok(rtps) = args[1].parse::<u32>() {
+                        let _ = bknd.tx.send(PlotMessage::RTPS(Tps::Limited(rtps)));
+                    } else {
+                        self.players[player].send_error_message("Invalid RTPS name");
+                    }
+                } else {
+                    self.players[player].send_error_message("Invalid backend name");
+                }
+            }
+            "run" | "r" => {
+                if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == args[0]) {
+                    let _ = bknd.tx.send(PlotMessage::Run);
+                } else {
+                    self.players[player].send_error_message("Invalid backend name");
+                }
+            }
+            "stop" | "s" => {
+                if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == args[0]) {
+                    let _ = bknd.tx.send(PlotMessage::Stop);
+                } else {
+                    self.players[player].send_error_message("Invalid backend name");
+                }
+            }
+            "reset" | "rs" => {
+                if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == args[0]) {
+                    let _ = bknd.tx.send(PlotMessage::Reset);
+                } else {
+                    self.players[player].send_error_message("Invalid backend name");
+                }
+            }
+            "delete" | "d" => {
+                if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == args[0]) {
+                    let _ = bknd.tx.send(PlotMessage::Delete);
+                } else {
+                    self.players[player].send_error_message("Invalid backend name");
+                }
+            }
             "status" | "sts" => {
-                if let Some(bknd) = self.backends.get(args[0]) {
-                    let _ = bknd.tx.send(BackendMessage::GetStatus(
-                        self.players[player].username.clone(),
-                    ));
+                if let Some(bknd) = self.backends.iter_mut().find(|b| b.name == args[0]) {
+                    let _ = bknd.tx.send(PlotMessage::Status);
                 } else {
                     self.players[player].send_error_message("Invalid backend name");
                 }

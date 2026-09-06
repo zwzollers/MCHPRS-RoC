@@ -6,6 +6,7 @@ use crate::utils::HyphenatedUUID;
 use crate::{permissions, utils};
 use backtrace::Backtrace;
 use bus::Bus;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use hmac::{Hmac, Mac};
 use mchprs_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
@@ -31,7 +32,6 @@ use sha2::Sha256;
 use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::Path;
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 
@@ -112,7 +112,7 @@ struct PlayerListEntry {
 struct PlotListEntry {
     plot_x: i32,
     plot_z: i32,
-    priv_message_sender: mpsc::Sender<PrivMessage>,
+    priv_message_sender: Sender<PrivMessage>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -153,7 +153,7 @@ impl MinecraftServer {
         let bind_addr = CONFIG.bind_address.clone();
 
         // Create thread messaging structs
-        let (plot_tx, server_rx) = mpsc::channel();
+        let (plot_tx, server_rx) = unbounded();
         let bus = Bus::new(100);
         let ctrl_handler_sender = plot_tx.clone();
 
@@ -189,7 +189,7 @@ impl MinecraftServer {
 
         // Load the spawn area plot on server start
         // This plot should be always active
-        let (spawn_tx, spawn_rx) = mpsc::channel();
+        let (spawn_tx, spawn_rx) = unbounded();
         Plot::load_and_run(
             0,
             0,
@@ -256,6 +256,7 @@ impl MinecraftServer {
     fn send_player_to_plot(&mut self, player: Player, new_entry: bool) {
         let (plot_x, plot_z) = player.pos.plot_pos();
 
+        println!("sending player");
         if new_entry {
             let player_list_entry = PlayerListEntry {
                 plot_x,
@@ -274,7 +275,7 @@ impl MinecraftServer {
             .iter()
             .any(|p| p.plot_x == plot_x && p.plot_z == plot_z);
         if !plot_loaded {
-            let (priv_tx, priv_rx) = mpsc::channel();
+            let (priv_tx, priv_rx) = unbounded();
             Plot::load_and_run(
                 plot_x,
                 plot_z,

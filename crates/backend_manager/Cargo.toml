@@ -14,4 +14,6 @@ include.workspace = true
 [dependencies]
 mchprs_backend_lib = { path = "../backend_lib" }
 backend_redpiler = { path = "../../backends/redpiler" }
+mchprs_save_data = { path = "../save_data" }
 enum_delegate = "0.2.0"
+crossbeam-channel = "0.5.17"
