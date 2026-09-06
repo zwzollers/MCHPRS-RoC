@@ -12,9 +12,12 @@
 //! TODO: handle cases where a cycle has a constrained input. Pulse extender example: button ->
 //! comparator subtract by constant -> comparator loop
 
+use crate::CompilerOptions;
 use crate::compile_graph::{CompileGraph, Direction, LinkType, NodeIdx, NodeState, NodeType};
-use crate::passes::{AnalysisInfo, AnalysisInfos, AnalysisUsage, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
+
 use itertools::Itertools;
 use mchprs_blocks::blocks::ComparatorMode;
 use mchprs_world::World;
@@ -89,18 +92,18 @@ impl SSRangeInfo {
     }
 }
 
-impl AnalysisInfo for SSRangeInfo {}
 
 pub struct SSRangeAnalysis;
 
 impl<W: World> Pass<W> for SSRangeAnalysis {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        _: &CompilerOptions,
-        _: &CompilerInput<'_, W>,
-        analysis_infos: &mut AnalysisInfos,
+        _options: CompilerOptions,
+        _bounds: (mchprs_blocks::BlockPos, mchprs_blocks::BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
+        let graph = data.get_mut(&TypeId::of::<CompileGraph>()).unwrap().downcast_mut::<CompileGraph>().unwrap();
+        
         let mut range_info = SSRangeInfo::default();
         range_info.reserve(graph);
 
@@ -154,15 +157,11 @@ impl<W: World> Pass<W> for SSRangeAnalysis {
             range_info.extend_range_to_include(node_idx, node.state.output_strength);
         }
 
-        analysis_infos.insert_analysis(range_info);
+        data.insert(TypeId::of::<SSRangeInfo>(), Box::new(range_info));
     }
 
     fn status_message(&self) -> &'static str {
         "Analyzing signal strength ranges"
-    }
-
-    fn analysis_usage(&self, au: &mut AnalysisUsage) {
-        au.set_preserves_all();
     }
 
     fn driver_key(&self) -> &'static str {

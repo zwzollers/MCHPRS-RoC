@@ -1,10 +1,10 @@
-use crate::backend::direct::node::ForwardLinks;
-use crate::compile_graph::{CompileGraph, Direction, LinkType, NodeIdx};
+use crate::node::ForwardLinks;
+use mchprs_backend_lib::blocks::{Block, Instrument};
+use mchprs_backend_lib::compile_graph::{CompileGraph, Direction, LinkType, NodeIdx};
+use mchprs_backend_lib::*;
+
 use crate::{CompilerOptions, TaskMonitor};
 use itertools::Itertools;
-use mchprs_blocks::blocks::{Block, Instrument};
-use mchprs_blocks::BlockPos;
-use mchprs_world::TickEntry;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use std::sync::Arc;
@@ -209,7 +209,7 @@ pub fn compile(
     }
 
     // Dot file output
-    if options.export_dot_graph {
+    if options.check("export_dot_graph".into()) {
         std::fs::write("backend_graph.dot", format!("{}", backend)).unwrap();
     }
 }

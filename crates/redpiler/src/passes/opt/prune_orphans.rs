@@ -3,9 +3,12 @@
 //! This pass removes any nodes in the graph that aren't transitively connected to an output
 //! redstone component by using Depth-First-Search.
 
+use crate::CompilerOptions;
 use crate::compile_graph::{CompileGraph, Direction};
-use crate::passes::{AnalysisInfos, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
+
 use itertools::Itertools;
 use mchprs_world::World;
 
@@ -14,11 +17,12 @@ pub struct PruneOrphans;
 impl<W: World> Pass<W> for PruneOrphans {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        _: &CompilerOptions,
-        _: &CompilerInput<'_, W>,
-        _: &mut AnalysisInfos,
+        _options: CompilerOptions,
+        _bounds: (mchprs_blocks::BlockPos, mchprs_blocks::BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
+        let graph = data.get_mut(&TypeId::of::<CompileGraph>()).unwrap().downcast_mut::<CompileGraph>().unwrap();
+
         // We start searching from output nodes
         let mut worklist = graph
             .node_indices()

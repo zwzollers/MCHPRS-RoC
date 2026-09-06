@@ -1,15 +1,18 @@
 use crate::compile_graph::{
     CompileGraph, Direction, LinkType as CLinkType, NodeIdx, NodeType as CNodeType,
 };
-use crate::passes::{AnalysisInfos, AnalysisUsage, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
+use crate::CompilerOptions;
 use itertools::Itertools;
+//use mchprs_blocks::BlockPos;
 use mchprs_blocks::blocks::ComparatorMode as CComparatorMode;
 use mchprs_world::World;
 use redpiler_graph::{
     serialize, BlockPos, ComparatorMode, Link, LinkType, Node, NodeState, NodeType,
 };
 use rustc_hash::FxHashMap;
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
 use std::fs;
 
 fn convert_node(
@@ -99,11 +102,12 @@ pub struct ExportGraph;
 impl<W: World> Pass<W> for ExportGraph {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        _: &CompilerOptions,
-        _: &CompilerInput<'_, W>,
-        _: &mut AnalysisInfos,
+        _options: CompilerOptions,
+        _bounds: (mchprs_blocks::BlockPos, mchprs_blocks::BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
+        let graph = data.get_mut(&TypeId::of::<CompileGraph>()).unwrap().downcast_mut::<CompileGraph>().unwrap();
+
         let mut nodes_map =
             FxHashMap::with_capacity_and_hasher(graph.node_count(), Default::default());
         for node in graph.node_indices() {
@@ -120,10 +124,6 @@ impl<W: World> Pass<W> for ExportGraph {
 
     fn status_message(&self) -> &'static str {
         "Exporting graph"
-    }
-
-    fn analysis_usage(&self, au: &mut AnalysisUsage) {
-        au.set_preserves_all();
     }
 
     fn driver_key(&self) -> &'static str {

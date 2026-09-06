@@ -13,3 +13,7 @@ include.workspace = true
 
 [dependencies]
 mchprs_backend_lib = { path = "../../crates/backend_lib" }
+smallvec = { version = "1.15", features = ["union", "serde"] }
+rustc-hash = "2.0"
+tracing = "0.1"
+itertools = "0.14"

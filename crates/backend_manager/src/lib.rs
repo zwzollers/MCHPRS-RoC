@@ -5,7 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use backend_redpiler::{Backend1, Backend2};
+use backend_redpiler::DirectBackend;
 
 use mchprs_backend_lib::*;
 use mchprs_save_data::plot_data::Tps;
@@ -68,14 +68,12 @@ impl PlotBackend {
     }
 )]
 enum Backends {
-    Backend1(backend_redpiler::Backend1),
-    Backend2(backend_redpiler::Backend2),
+    Redpiler(backend_redpiler::DirectBackend),
 }
 impl Backends {
     fn new(name: &str) -> Option<Self> {
         match name {
-            "rp" => Some(Backends::from(Backend1::default())),
-            "roc" => Some(Backends::from(Backend2::default())),
+            "rp" => Some(Backends::from(DirectBackend::default())),
             _ => None,
         }
     }

@@ -5,9 +5,12 @@
 //! For example, if two nodes are connected with two links of weights 13 and 15, the link with
 //! weight 15 is removed.
 
+use crate::CompilerOptions;
 use crate::compile_graph::{CompileGraph, Direction, NodeIdx};
-use crate::passes::{AnalysisInfos, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
+
 use mchprs_world::World;
 
 pub struct DedupLinks;
@@ -15,11 +18,12 @@ pub struct DedupLinks;
 impl<W: World> Pass<W> for DedupLinks {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        _: &CompilerOptions,
-        _: &CompilerInput<'_, W>,
-        _: &mut AnalysisInfos,
+        _options: CompilerOptions,
+        _bounds: (mchprs_blocks::BlockPos, mchprs_blocks::BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
+        let graph = data.get_mut(&TypeId::of::<CompileGraph>()).unwrap().downcast_mut::<CompileGraph>().unwrap();
+
         for i in 0..graph.node_bound() {
             let idx = NodeIdx::new(i);
             if !graph.contains_node(idx) {

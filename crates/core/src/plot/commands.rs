@@ -174,39 +174,39 @@ impl Plot {
     }
 
     /// Handles a command that starts with `/redpiler` or `/rp`
-    fn handle_redpiler_command(&mut self, player: usize, command: &str, args: &[&str]) {
-        match command {
-            "compile" | "c" => {
-                let start_time = Instant::now();
-                let args = args.join(" ");
-                let options = CompilerOptions::parse(&args);
+    // fn handle_redpiler_command(&mut self, player: usize, command: &str, args: &[&str]) {
+    //     match command {
+    //         "compile" | "c" => {
+    //             let start_time = Instant::now();
+    //             let args = args.join(" ");
+    //             let options = CompilerOptions::parse(&args);
 
-                if options.optimize {
-                    let msg = "Redpiler optimization is highly unstable and can break builds. Use with caution!";
-                    warn!("{}", msg);
-                    self.players[player].send_system_message(msg);
-                }
+    //             if options.optimize {
+    //                 let msg = "Redpiler optimization is highly unstable and can break builds. Use with caution!";
+    //                 warn!("{}", msg);
+    //                 self.players[player].send_system_message(msg);
+    //             }
 
-                debug!("Compile took {:?}", start_time.elapsed());
-            }
-            "inspect" | "i" => {
-                let player = &self.players[player];
-                let pos = worldedit::ray_trace_block(
-                    &self.world,
-                    player.pos,
-                    player.pitch as f64,
-                    player.yaw as f64,
-                    10.0,
-                );
-                let Some(pos) = pos else {
-                    player.send_error_message("Trace failed");
-                    return;
-                };
-            }
-            "reset" | "r" => {}
-            _ => self.players[player].send_error_message("Invalid argument for /redpiler"),
-        }
-    }
+    //             debug!("Compile took {:?}", start_time.elapsed());
+    //         }
+    //         "inspect" | "i" => {
+    //             let player = &self.players[player];
+    //             let pos = worldedit::ray_trace_block(
+    //                 &self.world,
+    //                 player.pos,
+    //                 player.pitch as f64,
+    //                 player.yaw as f64,
+    //                 10.0,
+    //             );
+    //             let Some(pos) = pos else {
+    //                 player.send_error_message("Trace failed");
+    //                 return;
+    //             };
+    //         }
+    //         "reset" | "r" => {}
+    //         _ => self.players[player].send_error_message("Invalid argument for /redpiler"),
+    //     }
+    // }
 
     fn handle_backend_command(&mut self, player: usize, command: &str, args: &[&str]) {
         match command {
@@ -460,14 +460,14 @@ impl Plot {
                 let command = args.remove(0);
                 self.handle_plot_command(player, command, &args);
             }
-            "redpiler" | "rp" => {
-                if args.is_empty() {
-                    self.players[player].send_error_message("Invalid number of arguments!");
-                    return false;
-                }
-                let command = args.remove(0);
-                self.handle_redpiler_command(player, command, &args);
-            }
+            // "redpiler" | "rp" => {
+            //     if args.is_empty() {
+            //         self.players[player].send_error_message("Invalid number of arguments!");
+            //         return false;
+            //     }
+            //     let command = args.remove(0);
+            //     self.handle_redpiler_command(player, command, &args);
+            // }
             "bknd" | "b" => {
                 if args.is_empty() {
                     self.players[player].send_error_message("Invalid number of arguments!");

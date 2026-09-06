@@ -15,4 +15,6 @@ include.workspace = true
 mchprs_world = { path = "../world" }
 mchprs_blocks = { path = "../blocks" }
 mchprs_save_data = { path = "../save_data" }
+mchprs_redpiler = { path = "../../crates/redpiler" }
+mchprs_redstone = { path = "../../crates/redstone" }
 enum_delegate = "0.2.0"

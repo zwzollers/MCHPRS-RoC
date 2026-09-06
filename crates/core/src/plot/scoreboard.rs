@@ -139,48 +139,48 @@ impl Scoreboard {
         );
     }
 
-    pub fn set_redpiler_options(&mut self, players: &[Player], options: &CompilerOptions) {
-        let mut new_lines = vec![self.current_state[0].clone()];
+    // pub fn set_redpiler_options(&mut self, players: &[Player], options: &CompilerOptions) {
+    //     let mut new_lines = vec![self.current_state[0].clone()];
 
-        let mut flags = Vec::new();
-        if options.optimize {
-            flags.push(("o", "- optimize"));
-        }
-        if options.export {
-            flags.push(("e", "- export"));
-        }
-        if options.io_only {
-            flags.push(("i", "- io only"));
-        }
-        if options.update {
-            flags.push(("u", "- update"));
-        }
-        if options.wire_dot_out {
-            flags.push(("d", "- wire dot out"));
-        }
-        if options.illegal_states_out {
-            flags.push(("l", "- illegal states out"));
-        }
-        if options.wire_cross_out {
-            flags.push(("c", "- wire cross out"));
-        }
+    //     let mut flags = Vec::new();
+    //     if options.optimize {
+    //         flags.push(("o", "- optimize"));
+    //     }
+    //     if options.export {
+    //         flags.push(("e", "- export"));
+    //     }
+    //     if options.io_only {
+    //         flags.push(("i", "- io only"));
+    //     }
+    //     if options.update {
+    //         flags.push(("u", "- update"));
+    //     }
+    //     if options.wire_dot_out {
+    //         flags.push(("d", "- wire dot out"));
+    //     }
+    //     if options.illegal_states_out {
+    //         flags.push(("l", "- illegal states out"));
+    //     }
+    //     if options.wire_cross_out {
+    //         flags.push(("c", "- wire cross out"));
+    //     }
 
-        if !flags.is_empty() {
-            new_lines.push(ScoreboardLine::new(
-                "flags".into(),
-                TextComponentBuilder::new("Flags:".into())
-                    .color_code(ColorCode::Gray)
-                    .finish(),
-            ));
-            new_lines.extend(flags.iter().map(|flag| {
-                ScoreboardLine::new(
-                    format!("flag_{}", flag.0),
-                    TextComponentBuilder::new(flag.1.to_string())
-                        .color_code(ColorCode::Aqua)
-                        .finish(),
-                )
-            }));
-        }
-        self.set_lines(players, new_lines);
-    }
+    //     if !flags.is_empty() {
+    //         new_lines.push(ScoreboardLine::new(
+    //             "flags".into(),
+    //             TextComponentBuilder::new("Flags:".into())
+    //                 .color_code(ColorCode::Gray)
+    //                 .finish(),
+    //         ));
+    //         new_lines.extend(flags.iter().map(|flag| {
+    //             ScoreboardLine::new(
+    //                 format!("flag_{}", flag.0),
+    //                 TextComponentBuilder::new(flag.1.to_string())
+    //                     .color_code(ColorCode::Aqua)
+    //                     .finish(),
+    //             )
+    //         }));
+    //     }
+    //     self.set_lines(players, new_lines);
+    // }
 }

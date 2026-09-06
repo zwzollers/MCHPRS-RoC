@@ -1,6 +1,8 @@
+use crate::CompilerOptions;
 use crate::compile_graph::{CompileGraph, Direction, LinkType, NodeIdx, NodeType};
-use crate::passes::{AnalysisInfos, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
 use itertools::Itertools;
 use mchprs_world::World;
 use tracing::trace;
@@ -10,12 +12,13 @@ pub struct Coalesce;
 impl<W: World> Pass<W> for Coalesce {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        _: &CompilerOptions,
-        _: &CompilerInput<'_, W>,
-        _: &mut AnalysisInfos,
+        _options: CompilerOptions,
+        _bounds: (mchprs_blocks::BlockPos, mchprs_blocks::BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
         loop {
+            let graph = data.get_mut(&TypeId::of::<CompileGraph>()).unwrap().downcast_mut::<CompileGraph>().unwrap();
+            
             let num_coalesced = run_iteration(graph);
             trace!("Iteration combined {} nodes", num_coalesced);
             if num_coalesced == 0 {

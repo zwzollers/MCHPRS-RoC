@@ -3,9 +3,12 @@
 //! This pass populates the graph with edges.
 //! This pass is *mandatory*. Without it, there would be no links between nodes.
 
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
+
 use crate::compile_graph::{CompileGraph, CompileLink, LinkType, NodeIdx};
-use crate::passes::{AnalysisInfos, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
+use crate::CompilerOptions;
 use mchprs_blocks::blocks::{Block, LeverFace};
 use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
 use mchprs_redstone::{self, comparator, wire};
@@ -17,12 +20,15 @@ pub struct InputSearch;
 impl<W: World> Pass<W> for InputSearch {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        _: &CompilerOptions,
-        input: &CompilerInput<'_, W>,
-        _: &mut AnalysisInfos,
+        _options: CompilerOptions,
+        _bounds: (BlockPos, BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
-        let mut state = InputSearchState::new(input.world, graph);
+        let [world, graph] = data.get_disjoint_mut([&TypeId::of::<W>(), &TypeId::of::<CompileGraph>()]);
+        let world = world.unwrap().downcast_mut::<W>().unwrap();
+        let graph = graph.unwrap().downcast_mut::<CompileGraph>().unwrap();
+
+        let mut state = InputSearchState::new(world, graph);
         state.search();
     }
 

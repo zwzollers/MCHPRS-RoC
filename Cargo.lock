@@ -129,7 +129,11 @@ dependencies = [
 name = "backend_redpiler"
 version = "0.5.2-dev"
 dependencies = [
+ "itertools",
  "mchprs_backend_lib",
+ "rustc-hash",
+ "smallvec",
+ "tracing",
 ]
 
 [[package]]
@@ -1332,6 +1336,8 @@ version = "0.5.2-dev"
 dependencies = [
  "enum_delegate",
  "mchprs_blocks",
+ "mchprs_redpiler",
+ "mchprs_redstone",
  "mchprs_save_data",
  "mchprs_world",
 ]

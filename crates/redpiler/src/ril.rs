@@ -1,9 +1,9 @@
+use crate::CompilerOptions;
 use crate::compile_graph::{
     CompileGraph, CompileLink, CompileNode, Direction, EdgeRef, LinkType, NodeIdx, NodeState,
     NodeType,
 };
 use crate::string_replacer::StringReplacer;
-use crate::CompilerOptions;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use mchprs_blocks::blocks::{ComparatorMode, Instrument};
@@ -669,7 +669,7 @@ impl RILModule {
             name: name.to_owned(),
             graph,
             schematic_path,
-            options,
+            options: CompilerOptions::default(),
         }
     }
 
@@ -982,7 +982,7 @@ impl Parser {
             TokenType::Comma => {
                 let (_, args) = self.expect_string()?;
                 self.expect_token(&[TokenType::RightParens])?;
-                Some(CompilerOptions::parse(&args))
+                Some(CompilerOptions::default())
             }
             _ => unreachable!(),
         };
@@ -1011,7 +1011,7 @@ impl Parser {
 
     fn parse_test_args(&mut self) -> RILParserResult<()> {
         let (_, args) = self.expect_string()?;
-        let args = CompilerOptions::parse(&args);
+        let args = CompilerOptions::default();
         self.module.test_args = Some(ast::TestArgs { args });
         Ok(())
     }

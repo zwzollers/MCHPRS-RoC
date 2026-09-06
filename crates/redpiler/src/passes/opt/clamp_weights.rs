@@ -1,6 +1,9 @@
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
+
 use crate::compile_graph::CompileGraph;
-use crate::passes::{AnalysisInfos, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
+use crate::CompilerOptions;
 use mchprs_world::World;
 
 pub struct ClampWeights;
@@ -8,11 +11,12 @@ pub struct ClampWeights;
 impl<W: World> Pass<W> for ClampWeights {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        _: &CompilerOptions,
-        _: &CompilerInput<'_, W>,
-        _: &mut AnalysisInfos,
+        _options: CompilerOptions,
+        _bounds: (mchprs_blocks::BlockPos, mchprs_blocks::BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
+        let graph = data.get_mut(&TypeId::of::<CompileGraph>()).unwrap().downcast_mut::<CompileGraph>().unwrap();
+
         graph.retain_edges(|g, edge| g[edge].ss < 15);
     }
 

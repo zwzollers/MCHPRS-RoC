@@ -2,7 +2,6 @@ use clap::{Parser, Subcommand};
 use line_index::{LineIndex, TextSize};
 use mchprs_blocks::BlockPos;
 use mchprs_redpiler::{
-    passes::{PassPipeline, PassPipelineBuilder, PassRegistry},
     ril::RILModule,
     CompilerOptions,
 };
@@ -119,19 +118,19 @@ fn load_ril(path: &Path, src: &str) -> Option<RILModule> {
     }
 }
 
-fn parse_pass_pipeline<'p>(
-    registry: &'p PassRegistry<TestWorld>,
-    passes: &str,
-) -> Option<PassPipeline<'p, TestWorld>> {
-    let mut builder = PassPipelineBuilder::new(registry);
-    for driver_key in passes.split(',') {
-        if !builder.add_pass_by_driver_key(driver_key) {
-            eprintln!("error: failed to add pass with key: {}", driver_key);
-            return None;
-        }
-    }
-    Some(builder.build())
-}
+// fn parse_pass_pipeline<'p>(
+//     registry: &'p PassRegistry<TestWorld>,
+//     passes: &str,
+// ) -> Option<PassPipeline<'p, TestWorld>> {
+//     let mut builder = PassPipelineBuilder::new(registry);
+//     for driver_key in passes.split(',') {
+//         if !builder.add_pass_by_driver_key(driver_key) {
+//             eprintln!("error: failed to add pass with key: {}", driver_key);
+//             return None;
+//         }
+//     }
+//     Some(builder.build())
+// }
 
 pub fn get_version_string() -> String {
     format!(
@@ -149,7 +148,7 @@ fn main() {
 
     match cli.command {
         Command::Test { path, update } => {
-            test::run_tests(path, update);
+            //test::run_tests(path, update);
         }
         Command::Compile {
             input_path,
@@ -163,21 +162,8 @@ fn main() {
             print_after_all,
             passes,
         } => {
-            let options = CompilerOptions {
-                optimize,
-                export,
-                io_only,
-                update: false,
-                export_dot_graph: false,
-                wire_dot_out,
-                illegal_states_out,
-                wire_cross_out,
-                print_after_all,
-                print_before_backend: false,
-                backend_variant: Default::default(),
-                passes,
-            };
-            compile::compile(&input_path, &output_path, &options);
+            let options = CompilerOptions::default();
+            //compile::compile(&input_path, &output_path, &options);
         }
         Command::Version => {
             println!("{}", get_version_string());

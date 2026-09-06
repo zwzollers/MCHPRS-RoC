@@ -1,8 +1,10 @@
 use std::collections::hash_map::Entry;
 
+use crate::CompilerOptions;
 use crate::compile_graph::{CompileGraph, CompileNode, Direction, NodeIdx, NodeState, NodeType};
-use crate::passes::{AnalysisInfos, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
 use mchprs_world::World;
 use petgraph::unionfind::UnionFind;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -12,11 +14,12 @@ pub struct ConstantCoalesce;
 impl<W: World> Pass<W> for ConstantCoalesce {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        _: &CompilerOptions,
-        _: &CompilerInput<'_, W>,
-        _: &mut AnalysisInfos,
+        _options: CompilerOptions,
+        _bounds: (mchprs_blocks::BlockPos, mchprs_blocks::BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
+        let graph = data.get_mut(&TypeId::of::<CompileGraph>()).unwrap().downcast_mut::<CompileGraph>().unwrap();
+        
         let mut vertex_sets = UnionFind::new(graph.node_bound());
         for edge in graph.all_edges() {
             let (src, dest) = (edge.source(), edge.target());

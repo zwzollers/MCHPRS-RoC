@@ -7,9 +7,12 @@
 //!
 //! There are no requirements for this pass.
 
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
+
+use crate::CompilerOptions;
 use crate::compile_graph::{Annotations, CompileGraph, CompileNode, NodeIdx, NodeState, NodeType};
-use crate::passes::{AnalysisInfos, Pass};
-use crate::{CompilerInput, CompilerOptions};
+use crate::passes::Pass;
 use itertools::Itertools;
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
@@ -26,36 +29,39 @@ pub struct IdentifyNodes;
 impl<W: World> Pass<W> for IdentifyNodes {
     fn run_pass(
         &self,
-        graph: &mut CompileGraph,
-        options: &CompilerOptions,
-        input: &CompilerInput<'_, W>,
-        _: &mut AnalysisInfos,
+        options: CompilerOptions,
+        bounds: (BlockPos, BlockPos),
+        data: &mut HashMap<TypeId, Box<dyn Any>>,
     ) {
-        let ignore_wires = options.optimize;
-        let plot = input.world;
+        let ignore_wires = options.check("optimized".into());
+        let plot = data.get_mut(&TypeId::of::<W>()).unwrap().downcast_mut::<W>().unwrap();
 
         let mut first_pass = FxHashMap::default();
         let mut second_pass = FxHashSet::default();
 
-        let (first_pos, second_pos) = input.bounds;
+        let (first_pos, second_pos) = bounds;
+
+        let mut graph = CompileGraph::default();
 
         for_each_block_optimized(plot, first_pos, second_pos, |pos| {
             for_pos(
-                graph,
+                &mut graph,
                 &mut first_pass,
                 &mut second_pass,
                 ignore_wires,
-                options.wire_dot_out,
-                options.illegal_states_out,
-                options.wire_cross_out,
+                options.check("wire_dot_out".into()),
+                options.check("illegal_states_out".into()),
+                options.check("wire_cross_out".into()),
                 plot,
                 pos,
             );
         });
 
         for pos in second_pass {
-            apply_annotations(graph, options, &first_pass, plot, pos);
+            apply_annotations(&mut graph, &options, &first_pass, plot, pos);
         }
+
+        data.insert(TypeId::of::<CompileGraph>(), Box::new(graph));
     }
 
     fn status_message(&self) -> &'static str {
