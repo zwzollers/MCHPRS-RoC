@@ -23,7 +23,6 @@ use mchprs_blocks::{BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::serverbound::SUseItemOn;
 use mchprs_network::PlayerPacketSender;
-use mchprs_redpiler::{Compiler, CompilerOptions};
 use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
 use mchprs_text::TextComponent;
 use mchprs_world::storage::Chunk;
@@ -62,7 +61,6 @@ const ERROR_IO_ONLY: &str = "This plot cannot be interacted with while redpiler 
 pub struct Plot {
     pub world: PlotWorld,
     pub players: Vec<Player>,
-    pub redpiler: Compiler,
 
     // Redstone Backends
     backends: Vec<PlotBackend>,
@@ -275,12 +273,6 @@ impl World for PlotWorld {
 
 impl Plot {
     fn tickn(&mut self, ticks: u64) {
-        if self.redpiler.is_active() {
-            self.timings.tickn(ticks);
-            self.redpiler.tickn(ticks);
-            return;
-        }
-
         for _ in 0..ticks {
             self.tick();
         }
@@ -288,10 +280,6 @@ impl Plot {
 
     fn tick(&mut self) {
         self.timings.tick();
-        if self.redpiler.is_active() {
-            self.redpiler.tick();
-            return;
-        }
 
         self.world
             .to_be_ticked
@@ -360,10 +348,10 @@ impl Plot {
     }
 
     fn set_pressure_plate(&mut self, pos: BlockPos, new_powered: bool) {
-        if self.redpiler.is_active() {
-            self.redpiler.set_pressure_plate(pos, new_powered);
-            return;
-        }
+        // if self.redpiler.is_active() {
+        //     self.redpiler.set_pressure_plate(pos, new_powered);
+        //     return;
+        // }
 
         let mut block = self.world.get_block(pos);
         if let Some(powered) = block.get_pressure_plate_powered() {
@@ -549,26 +537,26 @@ impl Plot {
             return;
         }
 
-        if self.redpiler.is_active() {
-            let block = self.world.get_block(block_pos);
-            let lever_or_button = matches!(block, Block::Lever { .. } | Block::StoneButton { .. });
-            if lever_or_button && !self.players[player].crouching {
-                self.redpiler.on_use_block(block_pos);
-                self.redpiler.flush(&mut self.world);
-                self.world.flush_block_changes();
-                return;
-            } else {
-                match self.redpiler.current_flags() {
-                    Some(flags) if flags.io_only => {
-                        self.players[player].send_error_message(ERROR_IO_ONLY);
-                        cancel(self);
-                        return;
-                    }
-                    _ => {}
-                }
-                self.reset_redpiler();
-            }
-        }
+        // if self.redpiler.is_active() {
+        //     let block = self.world.get_block(block_pos);
+        //     let lever_or_button = matches!(block, Block::Lever { .. } | Block::StoneButton { .. });
+        //     if lever_or_button && !self.players[player].crouching {
+        //         self.redpiler.on_use_block(block_pos);
+        //         self.redpiler.flush(&mut self.world);
+        //         self.world.flush_block_changes();
+        //         return;
+        //     } else {
+        //         match self.redpiler.current_flags() {
+        //             Some(flags) if flags.io_only => {
+        //                 self.players[player].send_error_message(ERROR_IO_ONLY);
+        //                 cancel(self);
+        //                 return;
+        //             }
+        //             _ => {}
+        //         }
+        //         self.reset_redpiler();
+        //     }
+        // }
 
         if let Some(item) = item_in_hand {
             let cancelled = interaction::use_item_on_block(
@@ -641,17 +629,6 @@ impl Plot {
             return;
         }
 
-        match self.redpiler.current_flags() {
-            Some(flags) if flags.io_only => {
-                self.players[player].send_error_message(ERROR_IO_ONLY);
-                self.send_block_change(block_pos, block.get_id());
-                return;
-            }
-            _ => {}
-        }
-
-        self.reset_redpiler();
-
         interaction::destroy(block, &mut self.world, block_pos);
         self.world.flush_block_changes();
 
@@ -680,66 +657,6 @@ impl Plot {
         self.last_update_time = Instant::now();
         self.last_nspt = None;
         self.timings.reset_timings();
-    }
-
-    fn start_redpiler(&mut self, options: CompilerOptions) {
-        debug!("Starting redpiler");
-        self.scoreboard
-            .set_redpiler_state(&self.players, RedpilerState::Compiling);
-        self.scoreboard
-            .set_redpiler_options(&self.players, &options);
-
-        let bounds = self.world.get_corners();
-        // TODO: use monitor
-        let monitor = Default::default();
-        let ticks = self.world.to_be_ticked.drain(..).collect();
-
-        let mut players_need_updates = HashSet::new();
-        thread::scope(|s| {
-            let handle = s.spawn(|| {
-                self.redpiler
-                    .compile(&self.world, bounds, options, ticks, monitor)
-            });
-            while !handle.is_finished() {
-                // We'll update the players so that they don't time out.
-                for player_idx in 0..self.players.len() {
-                    if self.players[player_idx].update() {
-                        // Unforunately we can't update a players view position
-                        // since we don't have access to the world, but we can
-                        // save the players that need updating for later.
-                        players_need_updates.insert(player_idx);
-                    }
-                }
-                thread::sleep(Duration::from_millis(20));
-            }
-        });
-
-        // Now that we have ownership of the world again, we can update player view positions
-        for player_idx in players_need_updates {
-            self.update_view_pos_for_player(player_idx, false);
-        }
-
-        self.scoreboard
-            .set_redpiler_state(&self.players, RedpilerState::Running);
-
-        self.reset_timings();
-    }
-
-    /// Redpiler needs to reset implicitly in the case of any block changes done by a player. This
-    /// can be
-    fn reset_redpiler(&mut self) {
-        if self.redpiler.is_active() {
-            debug!("Discarding redpiler");
-            let bounds = self.world.get_corners();
-            self.redpiler.reset(&mut self.world, bounds);
-            self.scoreboard
-                .set_redpiler_state(&self.players, RedpilerState::Stopped);
-            self.scoreboard
-                .set_redpiler_options(&self.players, &Default::default());
-
-            // reseting redpiler could cause a large amount of block updates
-            self.reset_timings();
-        }
     }
 
     fn destroy_entity(&mut self, entity_id: u32) {
@@ -1049,26 +966,16 @@ impl Plot {
                 // block updates.
                 let batch_size = batch_size.min(50_000) as u32;
                 let mut ticks_completed = batch_size;
-                if self.redpiler.is_active() {
-                    self.tickn(batch_size as u64);
-                    self.redpiler.flush(&mut self.world);
-                } else {
-                    for i in 0..batch_size {
-                        self.tick();
-                        if now.elapsed() > Duration::from_millis(200) {
-                            ticks_completed = i + 1;
-                            break;
-                        }
+
+                for i in 0..batch_size {
+                    self.tick();
+                    if now.elapsed() > Duration::from_millis(200) {
+                        ticks_completed = i + 1;
+                        break;
                     }
                 }
-                self.last_nspt = Some(self.last_update_time.elapsed() / ticks_completed);
-            }
 
-            if self.auto_redpiler
-                && !self.redpiler.is_active()
-                && (self.tps == Tps::Unlimited || self.timings.is_running_behind())
-            {
-                self.start_redpiler(Default::default());
+                self.last_nspt = Some(self.last_update_time.elapsed() / ticks_completed);
             }
 
             let now = Instant::now();
@@ -1181,7 +1088,6 @@ impl Plot {
             tps,
             world_send_rate,
             always_running,
-            redpiler: Default::default(),
             timings: TimingsMonitor::new(tps),
             owner: database::get_plot_owner(x, z).map(|s| s.parse::<HyphenatedUUID>().unwrap().0),
             async_rt: Plot::create_async_rt(),
@@ -1330,7 +1236,6 @@ impl Drop for Plot {
             .send(Message::PlotUnload(world.x, world.z))
             .unwrap();
 
-        self.reset_redpiler();
         self.world
             .chunks
             .iter_mut()

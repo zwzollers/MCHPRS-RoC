@@ -187,9 +187,6 @@ impl Plot {
                     self.players[player].send_system_message(msg);
                 }
 
-                self.reset_redpiler();
-                self.start_redpiler(options);
-
                 debug!("Compile took {:?}", start_time.elapsed());
             }
             "inspect" | "i" => {
@@ -205,11 +202,8 @@ impl Plot {
                     player.send_error_message("Trace failed");
                     return;
                 };
-                self.redpiler.inspect(pos);
             }
-            "reset" | "r" => {
-                self.reset_redpiler();
-            }
+            "reset" | "r" => {}
             _ => self.players[player].send_error_message("Invalid argument for /redpiler"),
         }
     }
@@ -398,9 +392,6 @@ impl Plot {
                 let start_time = Instant::now();
                 self.tickn(ticks as u64);
 
-                if self.redpiler.is_active() {
-                    self.redpiler.flush(&mut self.world);
-                }
                 self.players[player].send_system_message(&format!(
                     "Plot has been advanced by {} ticks ({:?})",
                     ticks,

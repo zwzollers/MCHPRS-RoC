@@ -145,9 +145,7 @@ pub fn execute_command(
             }
         }
     }
-    if command.mutates_world {
-        plot.reset_redpiler();
-    }
+    if command.mutates_world {}
     let ctx = CommandExecuteContext {
         plot: &mut plot.world,
         player: &mut plot.players[player_idx],
